@@ -1577,6 +1577,112 @@ namespace VaMMCP.Api {
 			return r;
 		}
 
+		// ===================== animation =====================
+
+		private static readonly string[] PoseControls = { "hipControl", "chestControl", "headControl" };
+
+		/// <summary>
+		/// Plays a Timeline animation with the person's collisions off until the body has reached the animation's pose.
+		/// Started from somewhere else, the body flies across the scene to get there, hits everything on the way, and
+		/// can bring the scene down.
+		/// </summary>
+		public JSONNode PlayAnimation(JSONNode args) {
+			string animation = S(args, "animation");
+			if (animation == "") throw new ApiError("animation required");
+			string personArg = S(args, "person");
+			string storableArg = S(args, "storable");
+			float tolerance = Num(args, "tolerance", 0.05f);
+			float timeout = Mathf.Clamp(Num(args, "timeout", 8f), 1f, 30f);
+
+			PlayStart start = Mt.Run(delegate {
+				Atom p = RequirePerson(personArg);
+				JSONStorable st = TimelineStorable(p, storableArg);
+				JSONStorableAction action = st.GetAction("Play " + animation);
+				if (action == null || action.actionCallback == null) throw new ApiError("animation not found: Play " + animation + " on " + st.storeId);
+				PlayStart s = new PlayStart();
+				s.Person = p.uid;
+				s.Storable = st.storeId;
+				s.CollisionsWereOn = p.collisionEnabled;
+				p.collisionEnabled = false;
+				try {
+					action.actionCallback();
+				} catch {
+					p.collisionEnabled = s.CollisionsWereOn;
+					throw;
+				}
+				return s;
+			}, 10000);
+
+			DateTime started = DateTime.UtcNow;
+			DateTime deadline = started.AddSeconds(timeout);
+			PoseOffset offset = null;
+			int steady = 0;
+			while (steady < 3 && DateTime.UtcNow < deadline) {
+				Thread.Sleep(100);
+				offset = Mt.Run(() => MeasurePoseOffset(FindAtom(start.Person)), 10000);
+				if ((DateTime.UtcNow - started).TotalSeconds < 0.5) continue;
+				steady = offset.Distance <= tolerance ? steady + 1 : 0;
+			}
+			bool settled = steady >= 3;
+			if (settled && start.CollisionsWereOn) Mt.Run(() => { FindAtom(start.Person).collisionEnabled = true; }, 10000);
+
+			JSONClass r = new JSONClass();
+			r["person"] = start.Person;
+			r["storable"] = start.Storable;
+			r["animation"] = animation;
+			r["settled"] = JSONRaw.Bool(settled);
+			r["seconds"] = F((float)(DateTime.UtcNow - started).TotalSeconds);
+			if (offset != null) {
+				r["offset"] = F(offset.Distance);
+				r["worstControl"] = offset.Control;
+			}
+			r["collisionEnabled"] = JSONRaw.Bool(settled && start.CollisionsWereOn);
+			if (!settled) r["note"] = "the body did not reach the animation's pose in time, so collisions were left off; check the scene before turning them back on (set_param AtomControl collisionEnabled)";
+			return r;
+		}
+
+		private class PlayStart {
+			public string Person;
+			public string Storable;
+			public bool CollisionsWereOn;
+		}
+
+		private class PoseOffset {
+			public float Distance;
+			public string Control;
+		}
+
+		private static JSONStorable TimelineStorable(Atom p, string storableId) {
+			if (storableId != "") {
+				JSONStorable st = p.GetStorableByID(storableId);
+				if (st == null) throw new ApiError("storable not found: " + storableId + " on " + p.uid);
+				return st;
+			}
+			JSONStorable found = null;
+			foreach (string id in p.GetStorableIDs()) {
+				if (!id.EndsWith("VamTimeline.AtomPlugin")) continue;
+				if (found != null) throw new ApiError("more than one Timeline plugin on " + p.uid + "; pass storable");
+				found = p.GetStorableByID(id);
+			}
+			if (found == null) throw new ApiError("no Timeline plugin on " + p.uid);
+			return found;
+		}
+
+		/// <summary>How far the body is from where its controls want it, for the controls that carry the whole body.</summary>
+		private static PoseOffset MeasurePoseOffset(Atom p) {
+			PoseOffset worst = new PoseOffset();
+			foreach (string id in PoseControls) {
+				FreeControllerV3 fc = p.GetStorableByID(id) as FreeControllerV3;
+				if (fc == null || fc.control == null || fc.followWhenOff == null) continue;
+				float d = Vector3.Distance(fc.control.position, fc.followWhenOff.position);
+				if (worst.Control == null || d > worst.Distance) {
+					worst.Distance = d;
+					worst.Control = id;
+				}
+			}
+			return worst;
+		}
+
 		// ===================== ui =====================
 
 		public JSONNode GetUi() {

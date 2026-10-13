@@ -1,4 +1,4 @@
-# Tool reference (64 tools)
+# Tool reference (65 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -84,6 +84,12 @@ VaM runtime status: plugin version, VaM version, atom/person counts, endpoint, e
 | `save_pose` | `path?`, `person?` | Export a pose |
 | `list_expressions` | `person?` | Expression morphs (heuristic filter) |
 | `set_expression` | `person?`, `name`*, `value?`, `reset?` | Set an expression (clears the other expressions first by default; `value` defaults to 1) |
+
+## Animation
+
+| Tool | Arguments | Notes |
+| --- | --- | --- |
+| `play_animation` | `animation`*, `person?`, `storable?`, `tolerance?`, `timeout?` | Play a Timeline animation (`Play <animation>`) with the person's collisions off, then turn them back on once hip, chest and head are within `tolerance` metres (default 0.05) of their controls. Started from somewhere else, the body flies across the scene to reach the pose and hits everything on the way, so use this instead of `call_action`. If the body is not there within `timeout` seconds (default 8), collisions stay off and the result says so |
 
 ## Bone control
 

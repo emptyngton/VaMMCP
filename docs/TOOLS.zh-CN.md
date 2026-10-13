@@ -1,4 +1,4 @@
-# 工具参考（64 个）
+# 工具参考（65 个）
 
 *[English](TOOLS.md)*
 
@@ -83,6 +83,12 @@ VaM 运行时状态：插件版本、VaM 版本、原子/人物数量、端点�
 | `save_pose` | `path?`, `person?` | 导出姿态 |
 | `list_expressions` | `person?` | 表情 morph 列表（启发式过滤） |
 | `set_expression` | `person?`, `name`*, `value?`, `reset?` | 设置表情（默认先清空其他表情再设，value 默认 1） |
+
+## 动画
+
+| 工具 | 参数 | 说明 |
+| --- | --- | --- |
+| `play_animation` | `animation`*, `person?`, `storable?`, `tolerance?`, `timeout?` | 播放 Timeline 动画（`Play <animation>`）前关闭人物碰撞，等臀部、胸部、头部与其控制点的距离都在 `tolerance` 米以内（默认 0.05）后再打开。人物不在动画起始位置时，身体会飞过场景、撞到沿途的一切，所以请用它代替 `call_action`。若 `timeout` 秒内（默认 8）未就位，碰撞保持关闭，并在结果中说明 |
 
 ## 骨骼控制
 

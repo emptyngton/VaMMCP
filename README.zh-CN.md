@@ -23,7 +23,7 @@ MCP 客户端 ──HTTP/JSON-RPC──▶ VaMMCP (BepInEx 插件, VaM 进程内
 > ⚠️ 本项目是**非官方**社区项目，与 Meshed VR / Virt-A-Mate / VaM Hub 无任何关联。
 > 请仅在你合法拥有的 VaM 副本上使用，并遵守 VaM 的 EULA 与 Hub 内容许可。
 
-## ✨ 功能一览（64 个工具）
+## ✨ 功能一览（65 个工具）
 
 | 分类 | 工具 |
 | --- | --- |
@@ -35,6 +35,7 @@ MCP 客户端 ──HTTP/JSON-RPC──▶ VaMMCP (BepInEx 插件, VaM 进程内
 | 捏人 | `list_morphs` `set_morph` `get_morph` `reset_morphs` |
 | 服装/发型 | `list_packages` `list_clothing_presets`（扫描磁盘+全部 .var 包）`load_clothing_preset` `list_clothing_items` `add_clothing_item` `remove_clothing_item` `set_clothing_item_on` `list_hair_presets` `load_hair_preset` `list_hair_items` `add_hair_item` `remove_hair_item` `set_hair_item_on` |
 | 姿态/表情 | `list_poses` `load_pose` `save_pose` `list_expressions` `set_expression` |
+| 动画 | `play_animation`（身体就位前关闭碰撞） |
 | 骨骼控制 | `list_controls` `get_control` `set_control` `set_gaze` |
 | 通用参数（长尾全覆盖） | `list_atom_storables` `list_storable_params` `get_param` `set_param` `call_action` |
 | 相机 | `get_camera` `set_camera` `capture_view` |
@@ -138,7 +139,7 @@ src/
 │   ├── HttpServer.cs      # 最小 HTTP/1.1 server（Streamable HTTP 传输、Origin 校验、keep-alive）
 │   ├── McpServer.cs       # MCP 协议：initialize / tools/list / tools/call / resources
 │   ├── Tool.cs            # 工具定义（名称/描述/JSON Schema/处理器/超时）
-│   └── ToolRegistry.cs    # 64 个工具注册
+│   └── ToolRegistry.cs    # 65 个工具注册
 └── Api/
     └── VaMApi.cs          # VaM 控制层（全部工具实现）
 ```

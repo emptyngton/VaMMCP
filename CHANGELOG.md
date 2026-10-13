@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 - `set_ui`: show or hide VaM's main UI, and deselect the selected atom so its panel closes.
+- `play_animation`: play a Timeline animation with the person's collisions off until the body has reached the
+  animation's pose, so it does not fly through the scene to get there.
 - `capture_view` takes `hide_ui=true` to take the shot without the main UI in it, then puts the UI back.
 
 ### Fixed

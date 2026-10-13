@@ -225,6 +225,16 @@ namespace VaMMCP.Mcp {
 				.P("action", "string", "Action name from list_storable_params", true)
 				.Fn(api.CallAction));
 
+			// ---------- animation ----------
+			tools.Add(new Tool("play_animation", "Play a Timeline animation on a person safely: collisions go off, the animation starts, and collisions come back on once the body has reached the animation's pose. Use this instead of call_action 'Play X': started from somewhere else, the body flies across the scene to get there and hits everything on the way. If the body never gets there, collisions are left off and the result says so.")
+				.P("animation", "string", "Animation name, as in the Timeline action 'Play <name>'", true)
+				.P("person", "string", "Person uid (default: the first person)", false)
+				.P("storable", "string", "Timeline storable id (default: the person's only VamTimeline.AtomPlugin)", false)
+				.P("tolerance", "number", "How close, in metres, hip, chest and head must be to their controls (default 0.05)", false)
+				.P("timeout", "number", "Seconds to wait for the body to get there (default 8, max 30)", false)
+				.Timeout(60000).Poller()
+				.Fn(api.PlayAnimation));
+
 			// ---------- camera ----------
 			tools.Add(new Tool("get_camera", "Read the monitor camera position, rotation and FOV.")
 				.Fn(a => api.GetCamera()));

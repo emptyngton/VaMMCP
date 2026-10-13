@@ -27,7 +27,7 @@ MCP client ──HTTP/JSON-RPC──▶ VaMMCP (BepInEx plugin, inside the VaM p
 > Meshed VR, Virt-A-Mate or the VaM Hub. Use it only with a copy of VaM you legally own, and
 > respect the VaM EULA and the licence of any Hub content you download.
 
-## ✨ Tools at a glance (64)
+## ✨ Tools at a glance (65)
 
 | Category | Tools |
 | --- | --- |
@@ -39,6 +39,7 @@ MCP client ──HTTP/JSON-RPC──▶ VaMMCP (BepInEx plugin, inside the VaM p
 | Morphs | `list_morphs` `set_morph` `get_morph` `reset_morphs` |
 | Clothing / hair | `list_packages` `list_clothing_presets` (scans disk + every .var package) `load_clothing_preset` `list_clothing_items` `add_clothing_item` `remove_clothing_item` `set_clothing_item_on` `list_hair_presets` `load_hair_preset` `list_hair_items` `add_hair_item` `remove_hair_item` `set_hair_item_on` |
 | Pose / expression | `list_poses` `load_pose` `save_pose` `list_expressions` `set_expression` |
+| Animation | `play_animation` (collisions off until the body is in place) |
 | Bone control | `list_controls` `get_control` `set_control` `set_gaze` |
 | Generic parameters (long tail) | `list_atom_storables` `list_storable_params` `get_param` `set_param` `call_action` |
 | Camera | `get_camera` `set_camera` `capture_view` |
@@ -145,7 +146,7 @@ src/
 │   ├── HttpServer.cs      # minimal HTTP/1.1 server (Streamable HTTP, Origin check, keep-alive)
 │   ├── McpServer.cs       # MCP protocol: initialize / tools/list / tools/call / resources
 │   ├── Tool.cs            # tool definition (name / description / JSON schema / handler / timeout)
-│   └── ToolRegistry.cs    # all 64 tool registrations
+│   └── ToolRegistry.cs    # all 65 tool registrations
 └── Api/
     └── VaMApi.cs          # VaM control layer (every tool implementation)
 ```
