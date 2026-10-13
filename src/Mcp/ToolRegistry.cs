@@ -240,6 +240,12 @@ namespace VaMMCP.Mcp {
 				.P("return_image", "boolean", "Return the PNG inline as an MCP image (default false; keep the resolution modest, e.g. 640x360, and note that images above 4 MB stay on disk only)", false)
 				.Fn(api.CaptureView));
 
+			// ---------- ui ----------
+			tools.Add(new Tool("set_ui", "Show or hide VaM's main UI and/or deselect the selected atom so its panel closes. With no arguments it only reports whether the UI is visible.")
+				.P("visible", "boolean", "true shows the main UI, false hides it", false)
+				.P("deselect", "boolean", "Deselect the selected atom, closing its panel (default false)", false)
+				.Fn(api.SetUi));
+
 			// ---------- simulation ----------
 			tools.Add(new Tool("set_simulation", "Pause/resume the simulation or set the global time scale.")
 				.P("paused", "boolean", "true pauses, false resumes", false)

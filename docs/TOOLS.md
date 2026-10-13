@@ -1,4 +1,4 @@
-# Tool reference (63 tools)
+# Tool reference (64 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -114,6 +114,12 @@ VaM runtime status: plugin version, VaM version, atom/person counts, endpoint, e
 | `get_camera` | — | Monitor camera position / rotation / FOV |
 | `set_camera` | `position?`, `rotation?`, `fov?` | Move the camera |
 | `capture_view` | `width?`, `height?`, `path?`, `return_image?` | Render a screenshot (default `Saves/PluginData/vam-mcp/preview.png`). With `return_image=true` the PNG also comes back as an MCP image block, so clients that cannot read the VaM folder can still see it — keep the resolution modest (e.g. 640×360); anything above 4 MB stays on disk only |
+
+## UI
+
+| Tool | Arguments | Notes |
+| --- | --- | --- |
+| `set_ui` | `visible?`, `deselect?` | Show (`visible=true`) or hide (`visible=false`) VaM's main UI; `deselect=true` deselects the selected atom so its panel closes. With no arguments it only reports `visible` |
 
 ## Simulation
 

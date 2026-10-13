@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `set_ui`: show or hide VaM's main UI, and deselect the selected atom so its panel closes.
+
 ## [1.0.1] - 2026-08-21
 
 ### Changed

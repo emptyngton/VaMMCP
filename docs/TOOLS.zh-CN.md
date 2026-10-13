@@ -1,4 +1,4 @@
-# 工具参考（63 个）
+# 工具参考（64 个）
 
 *[English](TOOLS.md)*
 
@@ -112,6 +112,12 @@ VaM 运行时状态：插件版本、VaM 版本、原子/人物数量、端点�
 | `get_camera` | — | 监视器相机位置/旋转/FOV |
 | `set_camera` | `position?`, `rotation?`, `fov?` | 移动相机 |
 | `capture_view` | `width?`, `height?`, `path?`, `return_image?` | 渲染截图（默认 `Saves/PluginData/vam-mcp/preview.png`）。`return_image=true` 时同时以 MCP image 块返回 PNG，读不到 VaM 目录的客户端也能"看"到——分辨率别开太大（如 640×360），超过 4 MB 只落盘不内联 |
+
+## 界面
+
+| 工具 | 参数 | 说明 |
+| --- | --- | --- |
+| `set_ui` | `visible?`, `deselect?` | 显示（`visible=true`）或隐藏（`visible=false`）VaM 主界面；`deselect=true` 取消选中当前 atom，关闭其面板。不带参数时只返回 `visible` |
 
 ## 模拟
 

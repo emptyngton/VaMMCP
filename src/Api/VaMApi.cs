@@ -1577,6 +1577,24 @@ namespace VaMMCP.Api {
 			return r;
 		}
 
+		// ===================== ui =====================
+
+		public JSONNode GetUi() {
+			JSONClass r = new JSONClass();
+			r["visible"] = JSONRaw.Bool(SC.MainHUDVisible);
+			return r;
+		}
+
+		/// <summary>Show or hide VaM's main UI, and/or deselect the selected atom so its panel closes.</summary>
+		public JSONNode SetUi(JSONNode args) {
+			if (Bool(args, "deselect", false)) SC.ClearSelection();
+			if (Has(args, "visible")) {
+				if (Bool(args, "visible", true)) SC.ShowMainHUDAuto();
+				else SC.HideMainHUD();
+			}
+			return GetUi();
+		}
+
 		// ===================== camera =====================
 
 		private static Camera MonitorCamera() {
