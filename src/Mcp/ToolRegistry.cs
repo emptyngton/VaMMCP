@@ -233,11 +233,13 @@ namespace VaMMCP.Mcp {
 				.P("rotation", "array", "[x, y, z] euler angles", false)
 				.P("fov", "number", "Field of view in degrees", false)
 				.Fn(api.SetCamera));
-			tools.Add(new Tool("capture_view", "Render the monitor camera to a PNG file (default Saves/PluginData/vam-mcp/preview.png) and return its path. Set return_image=true to also get the picture back inline, for clients that cannot read the VaM folder themselves.")
-				.P("width", "number", "Image width (default 1280, max 4096)", false)
-				.P("height", "number", "Image height (default 720, max 4096)", false)
+			tools.Add(new Tool("capture_view", "Screenshot what the monitor shows, taken at the end of a frame so people are drawn with their skin, saved as a PNG (default Saves/PluginData/vam-mcp/preview.png). Set return_image=true to also get the picture back inline, for clients that cannot read the VaM folder themselves.")
+				.P("width", "number", "Image width (default 1280, max 4096); the height follows the screen's aspect unless given", false)
+				.P("height", "number", "Image height (max 4096); the width follows the screen's aspect unless given", false)
 				.P("path", "string", "Optional output path", false)
 				.P("return_image", "boolean", "Return the PNG inline as an MCP image (default false; keep the resolution modest, e.g. 640x360, and note that images above 4 MB stay on disk only)", false)
+				.P("hide_ui", "boolean", "Hide VaM's main UI for the shot and put it back afterwards (default false)", false)
+				.Timeout(30000).Poller()
 				.Fn(api.CaptureView));
 
 			// ---------- ui ----------

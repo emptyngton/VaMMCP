@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 - `set_ui`: show or hide VaM's main UI, and deselect the selected atom so its panel closes.
+- `capture_view` takes `hide_ui=true` to take the shot without the main UI in it, then puts the UI back.
+
+### Fixed
+- `capture_view` showed people as hair with nothing under it. It rendered the camera from the tool call, which runs in
+  `Update`, before VaM draws a person's skin later in the frame. It now grabs the monitor image at the end of the frame,
+  so the shot is what the screen shows, scaled to the requested size.
 
 ## [1.0.1] - 2026-08-21
 

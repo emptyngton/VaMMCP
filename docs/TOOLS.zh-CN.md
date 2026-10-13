@@ -111,7 +111,7 @@ VaM 运行时状态：插件版本、VaM 版本、原子/人物数量、端点�
 | --- | --- | --- |
 | `get_camera` | — | 监视器相机位置/旋转/FOV |
 | `set_camera` | `position?`, `rotation?`, `fov?` | 移动相机 |
-| `capture_view` | `width?`, `height?`, `path?`, `return_image?` | 渲染截图（默认 `Saves/PluginData/vam-mcp/preview.png`）。`return_image=true` 时同时以 MCP image 块返回 PNG，读不到 VaM 目录的客户端也能"看"到——分辨率别开太大（如 640×360），超过 4 MB 只落盘不内联 |
+| `capture_view` | `width?`, `height?`, `path?`, `return_image?`, `hide_ui?` | 截取显示器画面，在帧末截取，人物皮肤完整（默认 `Saves/PluginData/vam-mcp/preview.png`，宽 1280，高按屏幕比例）。`hide_ui=true` 时截图期间隐藏 VaM 主界面，截完再恢复。`return_image=true` 时同时以 MCP image 块返回 PNG，读不到 VaM 目录的客户端也能"看"到——分辨率别开太大（如 640×360），超过 4 MB 只落盘不内联 |
 
 ## 界面
 

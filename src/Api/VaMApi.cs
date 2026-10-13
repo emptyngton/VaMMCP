@@ -1623,53 +1623,108 @@ namespace VaMMCP.Api {
 		/// <summary>Largest PNG returned inline as base64 (bigger images stay on disk only).</summary>
 		private const int MaxInlineImageBytes = 4 * 1024 * 1024;
 
+		/// <summary>
+		/// Grabs what the monitor shows, at the end of a frame. Rendering the camera from a tool call does not work:
+		/// tool calls run in Update, and VaM draws a person's skin later in the frame, so such a render had the hair
+		/// and nothing of the body under it.
+		/// </summary>
 		public JSONNode CaptureView(JSONNode args) {
-			Camera cam = MonitorCamera();
-			int w = (int)Num(args, "width", 1280);
-			int h = (int)Num(args, "height", 720);
-			if (w < 64 || h < 64) throw new ApiError("width/height too small");
-			if (w > 4096 || h > 4096) throw new ApiError("width/height too large (max 4096)");
+			int reqW = (int)Num(args, "width", 0);
+			int reqH = (int)Num(args, "height", 0);
+			if (reqW < 0 || reqH < 0) throw new ApiError("width/height must be positive");
+			if (reqW > 4096 || reqH > 4096) throw new ApiError("width/height too large (max 4096)");
 			bool returnImage = Bool(args, "return_image", false);
+			bool hideUi = Bool(args, "hide_ui", false);
 			string path = S(args, "path");
 			if (path == "") path = "Saves/PluginData/vam-mcp/preview.png";
-			FileManagerSecure.CreateDirectory("Saves/PluginData/vam-mcp");
 
-			RenderTexture rt = new RenderTexture(w, h, 24);
-			RenderTexture oldTarget = cam.targetTexture;
-			RenderTexture oldActive = RenderTexture.active;
-			Texture2D tex = null;
-			string base64 = null;
-			int pngBytes = 0;
-			try {
-				cam.targetTexture = rt;
-				cam.Render();
-				RenderTexture.active = rt;
-				tex = new Texture2D(w, h, TextureFormat.RGB24, false);
-				tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
-				tex.Apply();
-				byte[] bytes = tex.EncodeToPNG();
-				pngBytes = bytes.Length;
-				FileManagerSecure.WriteAllBytes(path, bytes);
-				if (returnImage && bytes.Length <= MaxInlineImageBytes) base64 = Convert.ToBase64String(bytes);
-			} finally {
-				cam.targetTexture = oldTarget;
-				RenderTexture.active = oldActive;
-				if (tex != null) UnityEngine.Object.Destroy(tex);
-				rt.Release();
-			}
+			CaptureState state = new CaptureState();
+			Mt.Run(delegate {
+				FileManagerSecure.CreateDirectory("Saves/PluginData/vam-mcp");
+				SC.StartCoroutine(CaptureAtEndOfFrame(state, reqW, reqH, hideUi, path));
+				return 0;
+			}, 10000);
+
+			DateTime deadline = DateTime.UtcNow.AddSeconds(15);
+			while (!state.Done && DateTime.UtcNow < deadline) Thread.Sleep(30);
+			if (!state.Done) throw new ApiError("capture timed out");
+			if (state.Error != null) throw new ApiError("capture failed: " + state.Error);
+
 			JSONClass r = new JSONClass();
 			r["path"] = path;
-			r["width"] = JSONRaw.Num(w);
-			r["height"] = JSONRaw.Num(h);
-			r["bytes"] = JSONRaw.Num(pngBytes);
-			if (base64 != null) {
+			r["width"] = JSONRaw.Num(state.Width);
+			r["height"] = JSONRaw.Num(state.Height);
+			r["bytes"] = JSONRaw.Num(state.Png.Length);
+			if (returnImage && state.Png.Length <= MaxInlineImageBytes) {
 				// McpServer turns these two into an MCP image content block.
-				r["image_base64"] = base64;
+				r["image_base64"] = Convert.ToBase64String(state.Png);
 				r["image_mime"] = "image/png";
 			} else if (returnImage) {
-				r["note"] = "image too large to inline (" + pngBytes + " bytes); read it from path instead";
+				r["note"] = "image too large to inline (" + state.Png.Length + " bytes); read it from path instead";
 			}
 			return r;
+		}
+
+		private class CaptureState {
+			public volatile bool Done;
+			public string Error;
+			public byte[] Png;
+			public int Width;
+			public int Height;
+		}
+
+		private IEnumerator CaptureAtEndOfFrame(CaptureState state, int reqW, int reqH, bool hideUi, string path) {
+			bool hid = hideUi && SC.MainHUDVisible;
+			if (hid) {
+				SC.HideMainHUD();
+				// A full frame without it, so nothing of the UI is still on screen when the shot is taken.
+				yield return null;
+			}
+			yield return new WaitForEndOfFrame();
+
+			Texture2D screen = null;
+			Texture2D scaled = null;
+			RenderTexture rt = null;
+			RenderTexture oldActive = RenderTexture.active;
+			try {
+				int sw = Screen.width;
+				int sh = Screen.height;
+				int w = reqW;
+				int h = reqH;
+				if (w == 0 && h == 0) w = 1280;
+				if (w == 0) w = Mathf.Max(1, Mathf.RoundToInt(h * (float)sw / sh));
+				if (h == 0) h = Mathf.Max(1, Mathf.RoundToInt(w * (float)sh / sw));
+
+				screen = new Texture2D(sw, sh, TextureFormat.RGB24, false);
+				screen.ReadPixels(new Rect(0, 0, sw, sh), 0, 0);
+				screen.Apply();
+
+				Texture2D output = screen;
+				if (w != sw || h != sh) {
+					rt = RenderTexture.GetTemporary(w, h, 0);
+					Graphics.Blit(screen, rt);
+					RenderTexture.active = rt;
+					scaled = new Texture2D(w, h, TextureFormat.RGB24, false);
+					scaled.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+					scaled.Apply();
+					output = scaled;
+				}
+
+				byte[] bytes = output.EncodeToPNG();
+				FileManagerSecure.WriteAllBytes(path, bytes);
+				state.Png = bytes;
+				state.Width = w;
+				state.Height = h;
+			} catch (Exception e) {
+				state.Error = e.Message;
+			} finally {
+				RenderTexture.active = oldActive;
+				if (rt != null) RenderTexture.ReleaseTemporary(rt);
+				if (screen != null) UnityEngine.Object.Destroy(screen);
+				if (scaled != null) UnityEngine.Object.Destroy(scaled);
+				if (hid) SC.ShowMainHUDAuto();
+				state.Done = true;
+			}
 		}
 
 		// ===================== simulation =====================

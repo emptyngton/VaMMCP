@@ -113,7 +113,7 @@ VaM runtime status: plugin version, VaM version, atom/person counts, endpoint, e
 | --- | --- | --- |
 | `get_camera` | — | Monitor camera position / rotation / FOV |
 | `set_camera` | `position?`, `rotation?`, `fov?` | Move the camera |
-| `capture_view` | `width?`, `height?`, `path?`, `return_image?` | Render a screenshot (default `Saves/PluginData/vam-mcp/preview.png`). With `return_image=true` the PNG also comes back as an MCP image block, so clients that cannot read the VaM folder can still see it — keep the resolution modest (e.g. 640×360); anything above 4 MB stays on disk only |
+| `capture_view` | `width?`, `height?`, `path?`, `return_image?`, `hide_ui?` | Screenshot what the monitor shows, taken at the end of a frame so people are drawn with their skin (default `Saves/PluginData/vam-mcp/preview.png`, 1280 wide, height from the screen's aspect). `hide_ui=true` hides VaM's main UI for the shot and puts it back afterwards. With `return_image=true` the PNG also comes back as an MCP image block, so clients that cannot read the VaM folder can still see it — keep the resolution modest (e.g. 640×360); anything above 4 MB stays on disk only |
 
 ## UI
 
