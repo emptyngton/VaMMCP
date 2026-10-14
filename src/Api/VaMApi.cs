@@ -434,6 +434,28 @@ namespace VaMMCP.Api {
 			return r;
 		}
 
+		/// <summary>
+		/// Parent an atom to another, or clear its parent with an empty parent. Parenting to a SubScene atom is how an
+		/// atom joins that subscene; its uid then gains the subscene's path ("SubScene/Atom").
+		/// </summary>
+		public JSONNode SetAtomParent(JSONNode args) {
+			Atom a = FindAtom(S(args, "uid"));
+			string parentUid = S(args, "parent");
+			if (parentUid == "") {
+				a.ClearParentAtom();
+			} else {
+				Atom parent = FindAtom(parentUid);
+				if (parent == a) throw new ApiError("an atom cannot be its own parent");
+				if (!a.canBeParented) throw new ApiError(a.uid + " cannot be parented");
+				a.SetParentAtom(parent);
+			}
+			JSONClass r = new JSONClass();
+			r["uid"] = a.uid;
+			r["parent"] = a.parentAtom != null ? a.parentAtom.uid : "";
+			r["subscene"] = a.containingSubScene != null ? a.containingSubScene.containingAtom.uid : "";
+			return r;
+		}
+
 		public JSONNode GetAtomTransform(JSONNode args) {
 			Atom a = FindAtom(S(args, "uid"));
 			JSONClass r = new JSONClass();

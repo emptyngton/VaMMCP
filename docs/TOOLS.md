@@ -1,4 +1,4 @@
-# Tool reference (73 tools)
+# Tool reference (74 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -34,6 +34,7 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 | `add_atom` | `type`*, `uid?` | Create an atom and wait until it is ready (up to 45 s) |
 | `remove_atom` | `uid`* | Delete an atom |
 | `set_atom_on` | `uid`*, `on`* | Show/hide |
+| `set_atom_parent` | `uid`*, `parent`* | Parent an atom to another so it follows it; an empty `parent` clears it. Parenting to a SubScene atom is how an atom joins that subscene, and its uid then becomes `SubScene/Atom` |
 | `get_atom_transform` | `uid`* | World position / euler angles / scale |
 | `set_atom_transform` | `uid`*, `position?`, `rotation?`, `scale?`, `relative?` | Transform (`relative=true` offsets instead of setting) |
 

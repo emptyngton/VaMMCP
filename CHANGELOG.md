@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- `set_atom_parent`: parent an atom to another, or clear its parent; parenting to a SubScene atom adds the
+  atom to that subscene.
 - `pending_dialogs`: everything on screen waiting for the user (plugin trust prompts, alerts, confirmations,
   file and Hub browsers, the error log, the Voxta API key prompt), reported but never clicked.
 - `capture_sequence`: frames over time in one grid image, from the tool's own camera or the screen, with an

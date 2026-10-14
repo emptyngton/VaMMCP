@@ -1,4 +1,4 @@
-# 工具参考（73 个）
+# 工具参考（74 个）
 
 *[English](TOOLS.md)*
 
@@ -33,6 +33,7 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | `add_atom` | `type`*, `uid?` | 创建原子，等待其就绪（最长 45s） |
 | `remove_atom` | `uid`* | 删除原子 |
 | `set_atom_on` | `uid`*, `on`* | 显示/隐藏 |
+| `set_atom_parent` | `uid`*, `parent`* | 将 atom 设为另一个 atom 的子级以跟随它；`parent` 为空时清除父级。设为 SubScene atom 的子级即加入该子场景，其 uid 随之变为 `SubScene/Atom` |
 | `get_atom_transform` | `uid`* | 世界坐标/欧拉角/缩放 |
 | `set_atom_transform` | `uid`*, `position?`, `rotation?`, `scale?`, `relative?` | 变换（`relative=true` 为相对位移） |
 

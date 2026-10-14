@@ -54,6 +54,10 @@ namespace VaMMCP.Mcp {
 				.P("uid", "string", "Atom uid", true)
 				.P("on", "boolean", "true to show, false to hide", true)
 				.Fn(api.SetAtomOn));
+			tools.Add(new Tool("set_atom_parent", "Parent an atom to another atom so it follows it, or clear the parent with an empty parent. Parenting to a SubScene atom is how an atom joins that subscene; its uid then becomes \"SubScene/Atom\".")
+				.P("uid", "string", "Atom uid", true)
+				.P("parent", "string", "Parent atom uid; empty clears the parent", true)
+				.Fn(api.SetAtomParent));
 			tools.Add(new Tool("get_atom_transform", "Get an atom's world position, rotation and scale.")
 				.P("uid", "string", "Atom uid", true)
 				.Fn(api.GetAtomTransform));
