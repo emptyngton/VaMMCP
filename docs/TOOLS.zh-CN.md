@@ -1,4 +1,4 @@
-# 工具参考（72 个）
+# 工具参考（73 个）
 
 *[English](TOOLS.md)*
 
@@ -143,6 +143,7 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | 工具 | 参数 | 说明 |
 | --- | --- | --- |
 | `set_ui` | `visible?`, `deselect?` | 显示（`visible=true`）或隐藏（`visible=false`）VaM 主界面；`deselect=true` 取消选中当前 atom，关闭其面板。不带参数时只返回 `visible` |
+| `pending_dialogs` | 无 | 屏幕上所有等待用户处理的界面，每项包含 `kind`、`text` 及其提供的 `buttons`：`plugin_trust`（"Allow load of plugins from ...?" 提示；未处理时会让场景加载一直挂起，因此加载卡住时应首先检查它）、`alert`、`load_confirm`、`overwrite_confirm`、`file_browser`（附标题）、`hub_browser`、`missing_packages`、`error_splash`、`error_log` 以及 `voxta_api_key_prompt`。同时返回 `loading` 和 VaM 的错误数。只报告，从不点击：信任提示应由用户自己回答 |
 
 ## 模拟
 

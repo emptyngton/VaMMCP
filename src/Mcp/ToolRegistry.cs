@@ -313,6 +313,8 @@ namespace VaMMCP.Mcp {
 				.P("visible", "boolean", "true shows the main UI, false hides it", false)
 				.P("deselect", "boolean", "Deselect the selected atom, closing its panel (default false)", false)
 				.Fn(api.SetUi));
+			tools.Add(new Tool("pending_dialogs", "Everything on screen that waits for the user: plugin trust prompts (\"Allow load of plugins from ...?\"; a pending one also holds a scene load open), alerts, load and overwrite confirmations, open file browsers, the Hub browser and its missing packages panel, the error splash and error log, and the Voxta API key prompt. Each with its kind, text and the buttons it offers. Only reports, never clicks: trust prompts are the user's to answer. Also returns whether a scene is loading and the error count.")
+				.Fn(a => api.PendingDialogs()));
 
 			// ---------- simulation ----------
 			tools.Add(new Tool("set_simulation", "Pause/resume the simulation or set the global time scale.")

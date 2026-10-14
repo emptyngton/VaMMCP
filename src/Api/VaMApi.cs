@@ -2532,6 +2532,90 @@ namespace VaMMCP.Api {
 			return GetUi();
 		}
 
+		/// <summary>
+		/// Everything on screen that waits for the user: plugin trust prompts (a pending one also holds a scene load
+		/// open), alerts, load and overwrite confirmations, open file browsers, the Hub browser and its missing
+		/// packages panel, the error splash and log, and the Voxta API key prompt. Only reports; nothing is clicked.
+		/// </summary>
+		public JSONNode PendingDialogs() {
+			JSONArray dialogs = new JSONArray();
+			MVR.FileManagement.FileManager fm = MVR.FileManagement.FileManager.singleton;
+			if (fm != null && fm.userConfirmContainer != null) {
+				foreach (MVR.FileManagement.UserConfirmPanel p in fm.userConfirmContainer.GetComponentsInChildren<MVR.FileManagement.UserConfirmPanel>()) {
+					JSONClass d = Dialog("plugin_trust", UiText(PrivateField(p, "promptText")));
+					if (!string.IsNullOrEmpty(p.signature)) d["signature"] = p.signature;
+					d["buttons"] = ButtonLabels(p, "confirmButton", "confirmStickyButton", "denyButton", "denyStickyButton");
+					dialogs.Add(d);
+				}
+			}
+			foreach (Transform root in new[] { SC.normalAlertRoot, SC.worldAlertRoot }) {
+				if (root == null) continue;
+				foreach (AlertUI a in root.GetComponentsInChildren<AlertUI>()) {
+					JSONClass d = Dialog("alert", UiText(PrivateField(a, "alertText")));
+					d["buttons"] = ButtonLabels(a, "okButton", "cancelButton");
+					dialogs.Add(d);
+				}
+			}
+			if (Showing(SC.loadConfirmPanel)) dialogs.Add(Dialog("load_confirm", UiText(PrivateField(SC, "loadConfirmPathText"))));
+			if (Showing(SC.overwriteConfirmPanel)) dialogs.Add(Dialog("overwrite_confirm", UiText(PrivateField(SC, "overwriteConfirmPathText"))));
+			List<uFileBrowser.FileBrowser> seen = new List<uFileBrowser.FileBrowser>();
+			foreach (uFileBrowser.FileBrowser fb in new[] { SC.fileBrowserUI, SC.fileBrowserWorldUI, SC.templatesFileBrowserWorldUI, SC.mediaFileBrowserUI, SC.directoryBrowserUI }) {
+				if (fb == null || seen.Contains(fb) || fb.IsHidden()) continue;
+				seen.Add(fb);
+				dialogs.Add(Dialog("file_browser", UiText(PrivateField(fb, "titleText"))));
+			}
+			MVR.Hub.HubBrowse hub = SC.hubBrowser;
+			if (hub != null && hub.IsShowing) dialogs.Add(Dialog("hub_browser", null));
+			if (hub != null && Showing(PrivateField(hub, "missingPackagesPanel") as GameObject)) dialogs.Add(Dialog("missing_packages", null));
+			if (Showing(SC.errorSplashTransform)) dialogs.Add(Dialog("error_splash", null));
+			if (Showing(SC.errorLogPanel)) dialogs.Add(Dialog("error_log", null));
+			if (GameObject.Find("VoxtaApiKeyPromptCanvas") != null) dialogs.Add(Dialog("voxta_api_key_prompt", null));
+
+			JSONClass r = new JSONClass();
+			r["count"] = JSONRaw.Num(dialogs.Count);
+			r["dialogs"] = dialogs;
+			r["loading"] = JSONRaw.Bool(SC.isLoading);
+			r["errors"] = JSONRaw.Num(SC.errorCount);
+			return r;
+		}
+
+		private static JSONClass Dialog(string kind, string text) {
+			JSONClass d = new JSONClass();
+			d["kind"] = kind;
+			if (!string.IsNullOrEmpty(text)) d["text"] = text.Trim();
+			return d;
+		}
+
+		private static bool Showing(Transform t) {
+			return t != null && t.gameObject.activeInHierarchy;
+		}
+
+		private static bool Showing(GameObject go) {
+			return go != null && go.activeInHierarchy;
+		}
+
+		/// <summary>The text of a UnityEngine.UI.Text, read by reflection (the build references only Assembly-CSharp).</summary>
+		private static string UiText(object text) {
+			return ReadMember(text, "text") as string;
+		}
+
+		/// <summary>The labels of the buttons a dialog currently offers, from each button's child Text.</summary>
+		private static JSONArray ButtonLabels(object owner, params string[] fields) {
+			JSONArray labels = new JSONArray();
+			foreach (string field in fields) {
+				Component button = PrivateField(owner, field) as Component;
+				if (button == null || !button.gameObject.activeInHierarchy) continue;
+				string label = null;
+				foreach (Component c in button.GetComponentsInChildren<Component>()) {
+					if (c.GetType().Name != "Text") continue;
+					label = UiText(c);
+					break;
+				}
+				labels.Add(string.IsNullOrEmpty(label) ? field : label.Trim());
+			}
+			return labels;
+		}
+
 		// ===================== camera =====================
 
 		private static Camera MonitorCamera() {

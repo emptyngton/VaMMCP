@@ -23,7 +23,7 @@ MCP 客户端 ──HTTP/JSON-RPC──▶ VaMMCP (BepInEx 插件, VaM 进程内
 > ⚠️ 本项目是**非官方**社区项目，与 Meshed VR / Virt-A-Mate / VaM Hub 无任何关联。
 > 请仅在你合法拥有的 VaM 副本上使用，并遵守 VaM 的 EULA 与 Hub 内容许可。
 
-## ✨ 功能一览（72 个工具）
+## ✨ 功能一览（73 个工具）
 
 | 分类 | 工具 |
 | --- | --- |
@@ -41,7 +41,7 @@ MCP 客户端 ──HTTP/JSON-RPC──▶ VaMMCP (BepInEx 插件, VaM 进程内
 | 依赖 | `scene_dependencies`（场景所需的包，包括 Timeline 驱动的形变）`find_broken_triggers` |
 | Voxta | `voxta_state` |
 | 相机 | `get_camera` `set_camera` `capture_view` `snapshot`（独立相机，任意角度，不影响用户视角）`capture_sequence`（随时间连拍，可配合动作或动画） |
-| 界面 | `set_ui` |
+| 界面 | `set_ui` `pending_dialogs`（等待用户处理的信任提示、提示框、浏览器） |
 | 模拟 | `set_simulation` `reset_simulation` |
 | Hub 社区资源 | `hub_browse` `hub_detail` `hub_download` |
 | 皮肤 | `set_skin_sss`（次表面反射 `_SubdermisColor`） |
@@ -141,7 +141,7 @@ src/
 │   ├── HttpServer.cs      # 最小 HTTP/1.1 server（Streamable HTTP 传输、Origin 校验、keep-alive）
 │   ├── McpServer.cs       # MCP 协议：initialize / tools/list / tools/call / resources
 │   ├── Tool.cs            # 工具定义（名称/描述/JSON Schema/处理器/超时）
-│   └── ToolRegistry.cs    # 72 个工具注册
+│   └── ToolRegistry.cs    # 73 个工具注册
 └── Api/
     └── VaMApi.cs          # VaM 控制层（全部工具实现）
 ```

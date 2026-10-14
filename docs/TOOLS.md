@@ -1,4 +1,4 @@
-# Tool reference (72 tools)
+# Tool reference (73 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -145,6 +145,7 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 | Tool | Arguments | Notes |
 | --- | --- | --- |
 | `set_ui` | `visible?`, `deselect?` | Show (`visible=true`) or hide (`visible=false`) VaM's main UI; `deselect=true` deselects the selected atom so its panel closes. With no arguments it only reports `visible` |
+| `pending_dialogs` | none | Everything on screen that waits for the user, each with its `kind`, `text` and the `buttons` it offers: `plugin_trust` (the "Allow load of plugins from ...?" prompt; a pending one also holds a scene load open, so this is the first thing to check when a load seems stuck), `alert`, `load_confirm`, `overwrite_confirm`, `file_browser` (with its title), `hub_browser`, `missing_packages`, `error_splash`, `error_log` and `voxta_api_key_prompt`. Also returns `loading` and VaM's error count. Only reports, never clicks: trust prompts are the user's to answer |
 
 ## Simulation
 
