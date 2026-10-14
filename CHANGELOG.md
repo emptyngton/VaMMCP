@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- `set_atom_transform`, `get_atom_transform` and `list_atoms` use the atom's main control instead of its root
+  transform. Moving the root left lights pointing the old way and was not what VaM saves; a parented atom's
+  control does not follow the root at all.
+
 ### Added
 - `set_atom_parent`: parent an atom to another, or clear its parent; parenting to a SubScene atom adds the
   atom to that subscene.

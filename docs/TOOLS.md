@@ -35,8 +35,8 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 | `remove_atom` | `uid`* | Delete an atom |
 | `set_atom_on` | `uid`*, `on`* | Show/hide |
 | `set_atom_parent` | `uid`*, `parent`* | Parent an atom to another so it follows it; an empty `parent` clears it. Parenting to a SubScene atom is how an atom joins that subscene, and its uid then becomes `SubScene/Atom` |
-| `get_atom_transform` | `uid`* | World position / euler angles / scale |
-| `set_atom_transform` | `uid`*, `position?`, `rotation?`, `scale?`, `relative?` | Transform (`relative=true` offsets instead of setting) |
+| `get_atom_transform` | `uid`* | World position / euler angles of the atom's main control (where VaM places and saves it), and scale |
+| `set_atom_transform` | `uid`*, `position?`, `rotation?`, `scale?`, `relative?` | Moves the atom by its main control, as VaM's own move handle does (`relative=true` offsets instead of setting) |
 
 ## Person
 

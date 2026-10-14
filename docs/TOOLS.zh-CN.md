@@ -34,8 +34,8 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | `remove_atom` | `uid`* | 删除原子 |
 | `set_atom_on` | `uid`*, `on`* | 显示/隐藏 |
 | `set_atom_parent` | `uid`*, `parent`* | 将 atom 设为另一个 atom 的子级以跟随它；`parent` 为空时清除父级。设为 SubScene atom 的子级即加入该子场景，其 uid 随之变为 `SubScene/Atom` |
-| `get_atom_transform` | `uid`* | 世界坐标/欧拉角/缩放 |
-| `set_atom_transform` | `uid`*, `position?`, `rotation?`, `scale?`, `relative?` | 变换（`relative=true` 为相对位移） |
+| `get_atom_transform` | `uid`* | atom 主控制点（VaM 放置并保存 atom 的位置）的世界坐标/欧拉角，以及缩放 |
+| `set_atom_transform` | `uid`*, `position?`, `rotation?`, `scale?`, `relative?` | 通过 atom 的主控制点移动它，与 VaM 自带的移动手柄一致（`relative=true` 为相对位移） |
 
 ## 人物
 

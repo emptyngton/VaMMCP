@@ -83,8 +83,8 @@ namespace VaMMCP.Api {
 			r["type"] = a.type;
 			r["name"] = a.name != null ? a.name : "";
 			r["on"] = JSONRaw.Bool(a.on);
-			r["position"] = Vec(a.transform.position);
-			r["rotation"] = Vec(a.transform.eulerAngles);
+			r["position"] = Vec(Placement(a).position);
+			r["rotation"] = Vec(Placement(a).eulerAngles);
 			return r;
 		}
 
@@ -456,26 +456,36 @@ namespace VaMMCP.Api {
 			return r;
 		}
 
+		/// <summary>
+		/// Where an atom is: its main control, the handle VaM moves and saves the atom by. A light sits on that control,
+		/// and a parented atom's control does not follow the atom's root, so moving the root alone moves nothing real.
+		/// </summary>
+		private static Transform Placement(Atom a) {
+			return a.mainController != null ? a.mainController.transform : a.transform;
+		}
+
 		public JSONNode GetAtomTransform(JSONNode args) {
 			Atom a = FindAtom(S(args, "uid"));
+			Transform t = Placement(a);
 			JSONClass r = new JSONClass();
 			r["uid"] = a.uid;
-			r["position"] = Vec(a.transform.position);
-			r["rotation"] = Vec(a.transform.eulerAngles);
+			r["position"] = Vec(t.position);
+			r["rotation"] = Vec(t.eulerAngles);
 			r["scale"] = Vec(a.transform.localScale);
 			return r;
 		}
 
 		public JSONNode SetAtomTransform(JSONNode args) {
 			Atom a = FindAtom(S(args, "uid"));
+			Transform t = Placement(a);
 			bool relative = Bool(args, "relative", false);
 			if (Has(args, "position")) {
 				Vector3 p = ParseVec3(args["position"]);
-				a.transform.position = relative ? a.transform.position + p : p;
+				t.position = relative ? t.position + p : p;
 			}
 			if (Has(args, "rotation")) {
 				Quaternion q = Quaternion.Euler(ParseVec3(args["rotation"]));
-				a.transform.rotation = relative ? a.transform.rotation * q : q;
+				t.rotation = relative ? t.rotation * q : q;
 			}
 			if (Has(args, "scale")) {
 				Vector3 s = ParseVec3(args["scale"]);
