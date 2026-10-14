@@ -256,6 +256,12 @@ namespace VaMMCP.Mcp {
 				.Timeout(120000).Poller()
 				.Fn(api.SceneDependencies));
 
+			tools.Add(new Tool("find_broken_triggers", "Every trigger action in the scene file (buttons, Timeline trigger tracks, plugin triggers, collision triggers), checked against the live scene. Lists actions whose receiver atom, storable or target no longer exists, so they silently do nothing; an action whose receiver atom was blanked is what VaM leaves when the atom it pointed at is deleted. Identical problems are grouped with a count and up to 5 places that fire them.")
+				.P("path", "string", "Scene file to read (default: the scene VaM loaded last)", false)
+				.P("limit", "number", "Distinct problems to return (default 100)", false)
+				.Timeout(120000).Poller()
+				.Fn(api.FindBrokenTriggers));
+
 			// ---------- voxta ----------
 			tools.Add(new Tool("voxta_state", "What the Voxta plugin on a person knows right now: connection (connected, status text, last error), chat (active, ready, chat id, characters, scenario), state (idle/listening/thinking/speaking/off), current states and available actions as the server sent them, the current action, the last messages, and the non-empty context slots and action lists. Works with any action setup because it reads what the plugin received.")
 				.P("person", "string", "Atom uid that has the Voxta plugin (default: the first one found)", false)

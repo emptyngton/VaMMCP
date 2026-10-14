@@ -27,7 +27,7 @@ MCP client ──HTTP/JSON-RPC──▶ VaMMCP (BepInEx plugin, inside the VaM p
 > Meshed VR, Virt-A-Mate or the VaM Hub. Use it only with a copy of VaM you legally own, and
 > respect the VaM EULA and the licence of any Hub content you download.
 
-## ✨ Tools at a glance (69)
+## ✨ Tools at a glance (70)
 
 | Category | Tools |
 | --- | --- |
@@ -42,7 +42,7 @@ MCP client ──HTTP/JSON-RPC──▶ VaMMCP (BepInEx plugin, inside the VaM p
 | Animation | `play_animation` (collisions off until the body is in place) `list_animations` |
 | Bone control | `list_controls` `get_control` `set_control` `set_gaze` |
 | Generic parameters (long tail) | `list_atom_storables` `list_storable_params` `get_param` `set_param` `call_action` |
-| Dependencies | `scene_dependencies` (packages a scene needs, incl. morphs Timeline animates) |
+| Dependencies | `scene_dependencies` (packages a scene needs, incl. morphs Timeline animates) `find_broken_triggers` |
 | Voxta | `voxta_state` |
 | Camera | `get_camera` `set_camera` `capture_view` |
 | UI | `set_ui` |
@@ -148,7 +148,7 @@ src/
 │   ├── HttpServer.cs      # minimal HTTP/1.1 server (Streamable HTTP, Origin check, keep-alive)
 │   ├── McpServer.cs       # MCP protocol: initialize / tools/list / tools/call / resources
 │   ├── Tool.cs            # tool definition (name / description / JSON schema / handler / timeout)
-│   └── ToolRegistry.cs    # all 69 tool registrations
+│   └── ToolRegistry.cs    # all 70 tool registrations
 └── Api/
     └── VaMApi.cs          # VaM control layer (every tool implementation)
 ```

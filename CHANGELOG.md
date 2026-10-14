@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- `find_broken_triggers`: trigger actions whose receiver atom, storable or target no longer exists, checked
+  against the live scene.
 - `scene_dependencies`: the packages a scene needs, read from the scene, its subscenes and its package's
   meta.json, plus the packages behind every morph a Timeline animates, flagged when nothing references them.
 - `voxta_state`: the Voxta plugin's connection, chat, state, current states, available actions, current

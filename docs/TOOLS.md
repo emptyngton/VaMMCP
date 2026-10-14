@@ -1,4 +1,4 @@
-# Tool reference (69 tools)
+# Tool reference (70 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -122,6 +122,7 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 | Tool | Arguments | Notes |
 | --- | --- | --- |
 | `scene_dependencies` | `path?`, `list?` | The packages a scene needs. Streams the scene file (default: the one VaM loaded last) and its subscenes for package references, off the main thread; for a scene inside a package, its `meta.json` dependencies count too. Then checks every morph any Timeline animates on a person and asks that person which package the morph came from. Timeline stores morphs by name only and VaM records a morph's package only while it is non-zero at save time, so packages a Timeline needs but nothing references are listed in `missing_from_references` with a suggested `minN` reference; `morphs_not_found` lists morphs the person does not have (package not installed). `list=true` also lists every referenced package with its versions |
+| `find_broken_triggers` | `path?`, `limit?` | Every trigger action in the scene file (buttons, Timeline trigger tracks, plugin triggers, collision triggers), streamed off the main thread and checked against the live scene. Lists actions whose receiver atom, storable or target no longer exists, so they silently do nothing: a blanked receiver atom (what VaM leaves when the atom an action pointed at is deleted), a missing atom, a missing storable (plugin removed or renamed), a missing param or action, or a missing morph on a person. Grouped by problem with a count and up to 5 places that fire it |
 
 ## Voxta
 

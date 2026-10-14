@@ -2061,6 +2061,208 @@ namespace VaMMCP.Api {
 			return m;
 		}
 
+		// ===================== triggers =====================
+
+		private static readonly Regex JsonStringLine = new Regex(@"^""(?<k>(?:[^""\\]|\\.)*)""\s*:\s*""(?<v>(?:[^""\\]|\\.)*)""\s*,?\s*$", RegexOptions.Compiled);
+		private static readonly Regex JsonArrayOpenLine = new Regex(@"^""(?<k>(?:[^""\\]|\\.)*)""\s*:\s*\[\s*$", RegexOptions.Compiled);
+
+		private class TriggerAction {
+			public string OwnerAtom;
+			public string OwnerStorable;
+			public string Trigger;
+			public string List;
+			public string Name;
+			public string Atom;
+			public string Receiver;
+			public string Target;
+		}
+
+		/// <summary>
+		/// Every trigger action in the scene file (buttons, Timeline trigger tracks, plugin triggers, collision
+		/// triggers...), checked against the live scene: an action whose receiver atom, storable or target no longer
+		/// exists silently does nothing. When an atom is deleted VaM keeps its actions but blanks the receiver atom,
+		/// which is how the Diner scene lost its fades. The file gives the list (it is the only place every trigger is
+		/// in), the live scene gives the answer, so built-in storables VaM leaves out of the file are not flagged.
+		/// </summary>
+		public JSONNode FindBrokenTriggers(JSONNode args) {
+			string path = S(args, "path");
+			if (path == "") {
+				LogCapture.SceneLoad scene;
+				long lastSeq, dropped;
+				LogCapture.Snapshot(long.MaxValue, out scene, out lastSeq, out dropped);
+				if (scene == null) throw new ApiError("no scene load seen since VaM started; pass path");
+				path = scene.Path;
+			}
+			int limit = Mathf.Clamp((int)Num(args, "limit", 100), 1, 1000);
+			if (!FileManagerSecure.FileExists(path)) throw new ApiError("could not read " + path + ": file not found");
+
+			List<TriggerAction> actions = new List<TriggerAction>();
+			try {
+				using (MVR.FileManagement.FileEntryStreamReader reader = MVR.FileManagement.FileManager.OpenStreamReader(path, false)) {
+					CollectTriggerActions(reader.StreamReader, actions);
+				}
+			} catch (Exception e) {
+				throw new ApiError("could not read " + path + ": " + e.Message);
+			}
+
+			Dictionary<string, string> verdicts = Mt.Run(() => {
+				Dictionary<string, string> v = new Dictionary<string, string>();
+				foreach (TriggerAction a in actions) {
+					string key = a.Atom + "\u0001" + a.Receiver + "\u0001" + a.Target;
+					if (!v.ContainsKey(key)) v[key] = CheckTriggerTarget(a.Atom, a.Receiver, a.Target);
+				}
+				return v;
+			}, 20000);
+
+			Dictionary<string, JSONClass> groups = new Dictionary<string, JSONClass>();
+			List<string> order = new List<string>();
+			int broken = 0;
+			foreach (TriggerAction a in actions) {
+				string problem = verdicts[a.Atom + "\u0001" + a.Receiver + "\u0001" + a.Target];
+				if (problem == null) continue;
+				broken++;
+				string key = problem + "\u0001" + a.Atom + "\u0001" + a.Receiver + "\u0001" + a.Target;
+				JSONClass g;
+				if (!groups.TryGetValue(key, out g)) {
+					g = new JSONClass();
+					g["problem"] = problem;
+					g["receiver_atom"] = a.Atom;
+					g["receiver"] = a.Receiver;
+					g["target"] = a.Target;
+					if (a.Name != "") g["action_name"] = a.Name;
+					g["count"] = JSONRaw.Num(0);
+					g["fired_by"] = new JSONArray();
+					groups[key] = g;
+					order.Add(key);
+				}
+				g["count"] = JSONRaw.Num(g["count"].AsInt + 1);
+				JSONArray firedBy = g["fired_by"].AsArray;
+				if (firedBy.Count < 5) {
+					string by = a.OwnerAtom + (a.OwnerStorable != "" ? " / " + a.OwnerStorable : "");
+					if (a.Trigger != "") by += " / " + a.Trigger;
+					if (a.List != "") by += " (" + a.List + ")";
+					firedBy.Add(by);
+				}
+			}
+
+			JSONClass r = new JSONClass();
+			r["scene"] = path;
+			r["actions_checked"] = JSONRaw.Num(actions.Count);
+			r["broken_actions"] = JSONRaw.Num(broken);
+			r["distinct_problems"] = JSONRaw.Num(order.Count);
+			JSONArray list = new JSONArray();
+			for (int i = 0; i < order.Count && i < limit; i++) list.Add(groups[order[i]]);
+			r["problems"] = list;
+			return r;
+		}
+
+		/// <summary>
+		/// Walks VaM's scene JSON line by line (VaM writes one key per line) without building it in memory, keeping
+		/// the atom (depth 2) and storable (depth 3) that own each action, the trigger's displayName and the action
+		/// list it sits in. An action is any object with receiverTargetName or receiverAtom.
+		/// </summary>
+		private static void CollectTriggerActions(StreamReader sr, List<TriggerAction> actions) {
+			List<Dictionary<string, string>> frames = new List<Dictionary<string, string>>();
+			Dictionary<int, string> arrayAtDepth = new Dictionary<int, string>();
+			string atom = "", storable = "";
+			string line;
+			while ((line = sr.ReadLine()) != null) {
+				string t = line.Trim();
+				if (t.Length == 0) continue;
+				if (t[0] == '}') {
+					if (frames.Count == 0) continue;
+					int depth = frames.Count;
+					Dictionary<string, string> f = frames[depth - 1];
+					frames.RemoveAt(depth - 1);
+					if (f.ContainsKey("receiverTargetName") || f.ContainsKey("receiverAtom")) {
+						string trigger = "";
+						for (int i = frames.Count - 1; i >= 0 && trigger == ""; i--) {
+							string dn;
+							if (frames[i].TryGetValue("displayName", out dn)) trigger = dn;
+						}
+						string list;
+						arrayAtDepth.TryGetValue(depth - 1, out list);
+						actions.Add(new TriggerAction {
+							OwnerAtom = atom,
+							OwnerStorable = storable,
+							Trigger = trigger,
+							List = list ?? "",
+							Name = Get(f, "name"),
+							Atom = Get(f, "receiverAtom"),
+							Receiver = Get(f, "receiver"),
+							Target = Get(f, "receiverTargetName"),
+						});
+					}
+					if (depth == 2) atom = "";
+					if (depth == 3) storable = "";
+					continue;
+				}
+				if (t[t.Length - 1] == '{') {
+					frames.Add(new Dictionary<string, string>());
+					continue;
+				}
+				Match arr = JsonArrayOpenLine.Match(t);
+				if (arr.Success) {
+					arrayAtDepth[frames.Count] = arr.Groups["k"].Value;
+					continue;
+				}
+				if (frames.Count == 0 || t[0] != '"') continue;
+				Match kv = JsonStringLine.Match(t);
+				if (!kv.Success) continue;
+				string k = kv.Groups["k"].Value;
+				string val = UnescapeJson(kv.Groups["v"].Value);
+				frames[frames.Count - 1][k] = val;
+				if (k == "id" && frames.Count == 2) atom = val;
+				if (k == "id" && frames.Count == 3) storable = val;
+			}
+		}
+
+		private static string Get(Dictionary<string, string> d, string k) {
+			string v;
+			return d.TryGetValue(k, out v) ? v : "";
+		}
+
+		private static string UnescapeJson(string s) {
+			if (s.IndexOf('\\') < 0) return s;
+			StringBuilder sb = new StringBuilder(s.Length);
+			for (int i = 0; i < s.Length; i++) {
+				char c = s[i];
+				if (c != '\\' || i + 1 >= s.Length) { sb.Append(c); continue; }
+				char n = s[++i];
+				switch (n) {
+					case 'n': sb.Append('\n'); break;
+					case 'r': sb.Append('\r'); break;
+					case 't': sb.Append('\t'); break;
+					case 'u':
+						if (i + 4 < s.Length) {
+							sb.Append((char)Convert.ToInt32(s.Substring(i + 1, 4), 16));
+							i += 4;
+						}
+						break;
+					default: sb.Append(n); break;
+				}
+			}
+			return sb.ToString();
+		}
+
+		/// <summary>Null when the target exists in the live scene, otherwise what is missing. Main thread.</summary>
+		private static string CheckTriggerTarget(string atomUid, string receiver, string target) {
+			if (atomUid == "") return "no receiver atom (blanked: the atom it pointed at was deleted, or none was chosen)";
+			Atom a = SC.GetAtomByUid(atomUid);
+			if (a == null) return "receiver atom missing";
+			if (receiver == "") return "no receiver storable chosen";
+			JSONStorable st = a.GetStorableByID(receiver);
+			if (st == null) return "receiver storable missing on the atom (plugin removed or renamed?)";
+			if (target == "") return "no target chosen";
+			if (st.GetAllParamAndActionNames().Contains(target)) return null;
+			if (st.GetAudioClipActionNames().Contains(target) || st.GetSceneFilePathActionNames().Contains(target) ||
+			    st.GetPresetFilePathActionNames().Contains(target) || st.GetStringChooserActionNames().Contains(target)) return null;
+			DAZCharacterSelector sel = st as DAZCharacterSelector;
+			if (sel != null && target.StartsWith("morph: ", StringComparison.Ordinal))
+				return FindMorph(sel, target.Substring(7)) != null ? null : "morph missing on the person (its package is not installed?)";
+			return "target missing on the storable";
+		}
+
 		// ===================== voxta =====================
 
 		/// <summary>
