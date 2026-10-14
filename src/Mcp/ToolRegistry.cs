@@ -249,6 +249,11 @@ namespace VaMMCP.Mcp {
 				.P("targets", "boolean", "With uid: also list each clip's controller, float and trigger target names (default false)", false)
 				.Fn(api.ListAnimations));
 
+			// ---------- voxta ----------
+			tools.Add(new Tool("voxta_state", "What the Voxta plugin on a person knows right now: connection (connected, status text, last error), chat (active, ready, chat id, characters, scenario), state (idle/listening/thinking/speaking/off), current states and available actions as the server sent them, the current action, the last messages, and the non-empty context slots and action lists. Works with any action setup because it reads what the plugin received.")
+				.P("person", "string", "Atom uid that has the Voxta plugin (default: the first one found)", false)
+				.Fn(api.VoxtaState));
+
 			// ---------- camera ----------
 			tools.Add(new Tool("get_camera", "Read the monitor camera position, rotation and FOV.")
 				.Fn(a => api.GetCamera()));

@@ -1,4 +1,4 @@
-# 工具参考（67 个）
+# 工具参考（68 个）
 
 *[English](TOOLS.md)*
 
@@ -114,6 +114,12 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | `call_action` | `uid`*, `storable`*, `action`* | 触发 storable 的动作（按钮） |
 
 `type` 可强制指定：`float|bool|string|chooser|color|property`（`property` 走反射读写公共属性，覆盖 customParamNames 如 `gravityX`）。
+
+## Voxta
+
+| 工具 | 参数 | 说明 |
+| --- | --- | --- |
+| `voxta_state` | `person?` | 人物身上 Voxta 插件当前掌握的信息：`connection`（是否连接、状态文本、最近错误）、`chat`（是否激活、是否就绪、聊天 ID、用户名、角色、场景剧本）、`state`（off/idle/listening/thinking/speaking）、服务器下发的 `current_states` 和 `available_actions`、`current_action`、`last_message`，以及非空的 `context` 槽位和 `action_lists`。读取的是插件实际收到的内容，因此适用于任何动作配置方式（文本动作列表、Actions 标签页、剧本动作） |
 
 ## 相机
 

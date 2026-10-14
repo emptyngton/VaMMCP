@@ -1832,6 +1832,130 @@ namespace VaMMCP.Api {
 			return f != null ? f.GetValue(target) : null;
 		}
 
+		// ===================== voxta =====================
+
+		/// <summary>
+		/// What the Voxta plugin on a person knows right now: connection, chat, state, the states and actions the
+		/// server sent, the last messages and the context slots. Works with any action setup (text action lists,
+		/// the Actions tab, scenario actions) because it reads what the plugin received, not how it was authored.
+		/// Status, Ready, CurrentState and AvailableActions are not registered params, so they are read from the
+		/// plugin's fields.
+		/// </summary>
+		public JSONNode VoxtaState(JSONNode args) {
+			string person = S(args, "person");
+			Atom atom = null;
+			JSONStorable st = null;
+			foreach (Atom a in SC.GetAtoms()) {
+				if (a == null || (person != "" && a.uid != person)) continue;
+				foreach (string id in a.GetStorableIDs()) {
+					if (!id.EndsWith("_Voxta")) continue;
+					atom = a;
+					st = a.GetStorableByID(id);
+					break;
+				}
+				if (st != null) break;
+			}
+			if (st == null) {
+				if (person != "") FindAtom(person);
+				throw new ApiError(person != "" ? "no Voxta plugin on " + person : "no atom with a Voxta plugin in this scene");
+			}
+
+			JSONClass r = new JSONClass();
+			r["person"] = atom.uid;
+			r["storable"] = st.storeId;
+
+			JSONClass connection = new JSONClass();
+			connection["connected"] = JSONRaw.Bool(VoxtaBool(st, "Connected", "_connectedJSON"));
+			connection["status"] = VoxtaString(st, "Status", "_statusJSON");
+			connection["error"] = JSONRaw.Bool(VoxtaBool(st, "Error", "_errorJSON"));
+			string lastError = VoxtaString(st, "Last Error", "_lastErrorJSON");
+			if (lastError != "") connection["last_error"] = lastError;
+			r["connection"] = connection;
+
+			JSONClass chat = new JSONClass();
+			chat["active"] = JSONRaw.Bool(VoxtaBool(st, "Active", "_activeJSON"));
+			chat["ready"] = JSONRaw.Bool(VoxtaBool(st, "Ready", "_readyJSON"));
+			chat["chat_id"] = VoxtaString(st, "Chat ID", null);
+			chat["user_name"] = VoxtaString(st, "User Name", null);
+			JSONArray characters = new JSONArray();
+			string[] ids = { "Character ID", "Character 2", "Character 3" };
+			for (int i = 0; i < ids.Length; i++) {
+				string id = VoxtaString(st, ids[i], null);
+				if (id == "") continue;
+				JSONClass c = new JSONClass();
+				c["id"] = id;
+				c["name"] = VoxtaString(st, "Character Name " + (i + 1), null);
+				string role = VoxtaString(st, "Character Role " + (i + 1), null);
+				if (role != "") c["role"] = role;
+				characters.Add(c);
+			}
+			chat["characters"] = characters;
+			string scenario = VoxtaString(st, "Scenario Name", null);
+			if (scenario != "") chat["scenario"] = scenario;
+			r["chat"] = chat;
+
+			r["state"] = VoxtaString(st, "State", null);
+			r["current_states"] = SplitVoxtaList(VoxtaString(st, "CurrentState", "_currentState"));
+			r["current_action"] = VoxtaString(st, "CurrentAction", "_currentAction");
+			r["available_actions"] = SplitVoxtaList(VoxtaString(st, "AvailableActions", "_availableActions"));
+			string flags = VoxtaString(st, "Flags", null);
+			if (flags != "") r["flags"] = flags;
+			string starting = VoxtaString(st, "StartingState", null);
+			if (starting != "") r["starting_state"] = starting;
+
+			JSONClass last = new JSONClass();
+			last["role"] = VoxtaString(st, "LastMessageRole", null);
+			last["sender"] = VoxtaString(st, "LastMessageSenderName", null);
+			last["text"] = VoxtaString(st, "LastMessageText", null);
+			last["user"] = VoxtaString(st, "LastUserMessage", null);
+			last["character"] = VoxtaString(st, "LastCharacterMessage", null);
+			r["last_message"] = last;
+
+			JSONClass context = new JSONClass();
+			JSONClass actionLists = new JSONClass();
+			foreach (string slot in new[] { "", " (Slot 1)", " (Slot 2)", " (Slot 3)", " (Slot 4)" }) {
+				string ctx = VoxtaString(st, "Context" + slot, null);
+				if (ctx != "") context[slot == "" ? "main" : slot.Trim(' ', '(', ')')] = ctx;
+				string list = VoxtaString(st, "ActionsList" + slot, null);
+				if (list != "") actionLists[slot == "" ? "main" : slot.Trim(' ', '(', ')')] = list;
+			}
+			r["context"] = context;
+			r["action_lists"] = actionLists;
+			return r;
+		}
+
+		/// <summary>A registered string or chooser param, else the plugin's own JSONStorableString field, else "".</summary>
+		private static string VoxtaString(JSONStorable st, string param, string field) {
+			if (st.GetStringParamNames().Contains(param)) return st.GetStringParamValue(param) ?? "";
+			if (st.GetStringChooserParamNames().Contains(param)) return st.GetStringChooserParamValue(param) ?? "";
+			JSONStorableString s = field != null ? PrivateField(st, field) as JSONStorableString : null;
+			return s != null ? s.val ?? "" : "";
+		}
+
+		private static bool VoxtaBool(JSONStorable st, string param, string field) {
+			if (st.GetBoolParamNames().Contains(param)) return st.GetBoolParamValue(param);
+			JSONStorableBool b = PrivateField(st, field) as JSONStorableBool;
+			return b != null && b.val;
+		}
+
+		private static object PrivateField(object target, string name) {
+			if (target == null || name == null) return null;
+			for (Type t = target.GetType(); t != null; t = t.BaseType) {
+				FieldInfo f = t.GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+				if (f != null) return f.GetValue(target);
+			}
+			return null;
+		}
+
+		/// <summary>The plugin shows lists as "a, b, c", or "(none)" when empty.</summary>
+		private static JSONArray SplitVoxtaList(string text) {
+			JSONArray list = new JSONArray();
+			if (string.IsNullOrEmpty(text) || text == "(none)") return list;
+			foreach (string part in text.Split(','))
+				if (part.Trim().Length > 0) list.Add(part.Trim());
+			return list;
+		}
+
 		// ===================== log =====================
 
 		private const string LogTimeFormat = "yyyy-MM-dd HH:mm:ss.fff";

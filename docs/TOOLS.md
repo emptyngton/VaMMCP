@@ -1,4 +1,4 @@
-# Tool reference (67 tools)
+# Tool reference (68 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -116,6 +116,12 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 
 `type` can force the interpretation: `float|bool|string|chooser|color|property`
 (`property` reads/writes a public property through reflection, covering customParamNames such as `gravityX`).
+
+## Voxta
+
+| Tool | Arguments | Notes |
+| --- | --- | --- |
+| `voxta_state` | `person?` | What the Voxta plugin on a person knows right now: `connection` (connected, status text, last error), `chat` (active, ready, chat id, user name, characters, scenario), `state` (off/idle/listening/thinking/speaking), `current_states` and `available_actions` as the server sent them, `current_action`, `last_message`, and the non-empty `context` slots and `action_lists`. Works with any action setup (text action lists, the Actions tab, scenario actions) because it reads what the plugin received |
 
 ## Camera
 

@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- `voxta_state`: the Voxta plugin's connection, chat, state, current states, available actions, current
+  action, last messages and context slots in one call.
 - `list_animations`: Timeline clips per atom as Timeline holds them (segment, layer, length, loop, what is
   playing, what they animate), flagging names that hide control characters or repeat.
 - `read_log`: what VaM and its plugins logged, with date and time on every line, since the last scene load by
