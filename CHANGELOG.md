@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Fixed
+- `list_poses` and `list_looks` find `.vap` presets under `Custom/Atom/Person`, loose and in packages, as VaM's browser
+  does; they only read the legacy `Saves/Person` folders before and found nothing on a current install. `load_pose`,
+  `load_look` and the clothing and hair preset loaders load a `.vap` through the person's preset manager.
 - `set_atom_transform`, `get_atom_transform` and `list_atoms` use the atom's main control instead of its root
   transform. Moving the root left lights pointing the old way and was not what VaM saves; a parented atom's
   control does not follow the root at all.

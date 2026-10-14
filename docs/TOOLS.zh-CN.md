@@ -43,8 +43,8 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | --- | --- | --- |
 | `add_person` | `uid?` | 添加人物（uid 可能被 VaM 重命名，以返回值为准） |
 | `list_persons` | — | 人物列表（uid/角色名/性别/位置） |
-| `list_looks` | `search?` | 外观预设列表（`Saves/Person/Appearance`） |
-| `load_look` | `path`*, `person?` | 应用外观预设（角色/服装/发型/morph 增量；异步，稍后验证） |
+| `list_looks` | `search?`, `limit?` | 与 VaM 浏览器一致的外观预设：`Custom/Atom/Person/Appearance` 下的 `.vap`（本地文件与包内，仅最新版本），以及 `Saves/Person/Appearance` 中的旧版 `.json`。每行含 `path`、`name`、`folder`、`package`；`search` 匹配路径；`count` 为总数，`limit`（200）限制行数 |
+| `load_look` | `path`*, `person?` | 应用外观预设（角色/服装/发型/morph 增量；异步，稍后验证）。`.vap` 通过人物的 AppearancePresets 管理器加载，与 VaM 预设浏览器一致 |
 | `save_look` | `path?`, `person?` | 导出外观预设（**注意**：VaM 的预设保存不含完整材质参数，跨场景搬运后需按需补设皮肤参数） |
 | `set_character` | `person?`, `name`* | 切换基础角色网格（名称见 `get_param storable=geometry param=characterSelection` 的 choices） |
 
@@ -82,8 +82,8 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 
 | 工具 | 参数 | 说明 |
 | --- | --- | --- |
-| `list_poses` | `search?` | 姿态预设（`Saves/Person/Pose`） |
-| `load_pose` | `path`*, `person?`, `all?` | 应用姿态（`all=true` 应用到所有人） |
+| `list_poses` | `search?`, `limit?` | 与 VaM 浏览器一致的姿态预设：`Custom/Atom/Person/Pose` 下的 `.vap`（本地文件与包内，仅最新版本），以及 `Saves/Person/Pose` 中的旧版 `.json`。每行含 `path`、`name`、`folder`、`package`；`search` 匹配路径；`count` 为总数，`limit`（200）限制行数 |
+| `load_pose` | `path`*, `person?`, `all?` | 应用姿态（`all=true` 应用到所有人）。`.vap` 通过人物的 PosePresets 管理器加载，与 VaM 预设浏览器一致，姿态落在人物所站的位置 |
 | `save_pose` | `path?`, `person?` | 导出姿态 |
 | `list_expressions` | `person?` | 表情 morph 列表（启发式过滤） |
 | `set_expression` | `person?`, `name`*, `value?`, `reset?` | 设置表情（默认先清空其他表情再设，value 默认 1） |

@@ -76,10 +76,11 @@ namespace VaMMCP.Mcp {
 				.Fn(api.AddPerson));
 			tools.Add(new Tool("list_persons", "List Person atoms: uid, character, gender, on/off, position.")
 				.Fn(a => api.ListPersons()));
-			tools.Add(new Tool("list_looks", "List appearance presets (looks) on disk.")
-				.P("search", "string", "Optional substring filter", false)
+			tools.Add(new Tool("list_looks", "List appearance presets (looks) as VaM's browser finds them: .vap under Custom/Atom/Person/Appearance, loose and in packages (newest version only), plus legacy .json from Saves/Person/Appearance. Each row: path (pass to load_look), name, folder, package.")
+				.P("search", "string", "Optional substring filter on the path (name, folder or package)", false)
+				.P("limit", "number", "Rows to return (default 200); count is the total that matched", false)
 				.Fn(api.ListLooks));
-			tools.Add(new Tool("load_look", "Apply an appearance preset (look) to a person. Replaces their character, morphs and skin.")
+			tools.Add(new Tool("load_look", "Apply an appearance preset (look) to a person. Replaces their character, morphs and skin. A .vap loads through the person's AppearancePresets manager, as VaM's preset browser does.")
 				.P("path", "string", "Look path from list_looks", true)
 				.P("person", "string", "Person uid (default: first Person)", false)
 				.Fn(api.LoadLook));
@@ -167,10 +168,11 @@ namespace VaMMCP.Mcp {
 				.Fn(api.SetHairItemOn));
 
 			// ---------- poses / expressions ----------
-			tools.Add(new Tool("list_poses", "List pose presets on disk.")
-				.P("search", "string", "Optional substring filter", false)
+			tools.Add(new Tool("list_poses", "List pose presets as VaM's browser finds them: .vap under Custom/Atom/Person/Pose, loose and in packages (newest version only), plus legacy .json from Saves/Person/Pose. Each row: path (pass to load_pose), name, folder, package.")
+				.P("search", "string", "Optional substring filter on the path (name, folder or package)", false)
+				.P("limit", "number", "Rows to return (default 200); count is the total that matched", false)
 				.Fn(api.ListPoses));
-			tools.Add(new Tool("load_pose", "Apply a pose preset. With all=true applies to every Person in the scene.")
+			tools.Add(new Tool("load_pose", "Apply a pose preset. A .vap loads through the person's PosePresets manager, as VaM's preset browser does, so the pose lands where the person stands. With all=true applies to every Person in the scene.")
 				.P("path", "string", "Pose path from list_poses", true)
 				.P("person", "string", "Person uid (default: first Person; ignored when all=true)", false)
 				.P("all", "boolean", "Apply to all persons (default false)", false)

@@ -539,7 +539,7 @@ namespace VaMMCP.Api {
 		}
 
 		public JSONNode ListLooks(JSONNode args) {
-			return ListPresets("Saves/Person/Appearance", S(args, "search"), "looks");
+			return ListPresets("Custom/Atom/Person/Appearance", "Saves/Person/Appearance", args, "looks");
 		}
 
 		public JSONNode ListClothingPresets(JSONNode args) {
@@ -645,25 +645,67 @@ namespace VaMMCP.Api {
 		}
 
 		public JSONNode ListPoses(JSONNode args) {
-			return ListPresets("Saves/Person/Pose", S(args, "search"), "poses");
+			return ListPresets("Custom/Atom/Person/Pose", "Saves/Person/Pose", args, "poses");
 		}
 
-		private JSONNode ListPresets(string dir, string search, string key) {
-			string s = search.ToLowerInvariant();
-			List<string> files = ListJsonFiles(dir);
+		/// <summary>
+		/// Presets as VaM's own browser finds them: .vap files anywhere under the store folder, loose and in every
+		/// package (newest version only), then legacy .json files from the old Saves/Person folder.
+		/// </summary>
+		private JSONNode ListPresets(string storeDir, string legacyDir, JSONNode args, string key) {
+			string s = S(args, "search").ToLowerInvariant();
+			int limit = Mathf.Max(1, (int)Num(args, "limit", 200));
+			List<MVR.FileManagement.FileEntry> found = new List<MVR.FileManagement.FileEntry>();
+			MVR.FileManagement.FileManager.FindAllFiles(storeDir, "*.vap", found, true);
 			JSONArray arr = new JSONArray();
-			foreach (string f in files) {
-				string name = FileName(f);
-				if (s != "" && name.ToLowerInvariant().IndexOf(s) < 0 && f.ToLowerInvariant().IndexOf(s) < 0) continue;
+			int matches = 0;
+			foreach (MVR.FileManagement.FileEntry fe in found) {
+				MVR.FileManagement.VarFileEntry vfe = fe as MVR.FileManagement.VarFileEntry;
+				MVR.FileManagement.VarPackage pkg = vfe != null ? vfe.Package : null;
+				if (pkg != null && !pkg.isNewestVersion) continue;
+				string path = fe.Uid.Replace('\\', '/');
+				if (s != "" && path.ToLowerInvariant().IndexOf(s) < 0) continue;
+				matches++;
+				if (arr.Count >= limit) continue;
+				JSONClass row = new JSONClass();
+				row["path"] = path;
+				row["name"] = PresetName(path);
+				string folder = PresetFolder(path, storeDir);
+				if (folder != "") row["folder"] = folder;
+				if (pkg != null) row["package"] = pkg.Uid;
+				arr.Add(row);
+			}
+			foreach (string f in ListJsonFiles(legacyDir)) {
+				if (s != "" && f.ToLowerInvariant().IndexOf(s) < 0) continue;
+				matches++;
+				if (arr.Count >= limit) continue;
 				JSONClass row = new JSONClass();
 				row["path"] = f;
-				row["name"] = name;
+				row["name"] = FileName(f);
+				row["legacy"] = JSONRaw.Bool(true);
 				arr.Add(row);
 			}
 			JSONClass r = new JSONClass();
-			r["count"] = JSONRaw.Num(arr.Count);
+			r["count"] = JSONRaw.Num(matches);
+			r["shown"] = JSONRaw.Num(arr.Count);
 			r[key] = arr;
 			return r;
+		}
+
+		/// <summary>"Folder/Preset_Name.vap" -> "Name", the name VaM's preset browser shows.</summary>
+		private static string PresetName(string path) {
+			string name = path.Substring(path.LastIndexOf('/') + 1);
+			if (name.EndsWith(".vap", StringComparison.OrdinalIgnoreCase)) name = name.Substring(0, name.Length - 4);
+			if (name.StartsWith("Preset_")) name = name.Substring(7);
+			return name;
+		}
+
+		/// <summary>The subfolder of a preset under the store folder, "" when it sits at the top.</summary>
+		private static string PresetFolder(string path, string storeDir) {
+			int i = path.IndexOf(storeDir + "/", StringComparison.OrdinalIgnoreCase);
+			int last = path.LastIndexOf('/');
+			int start = i >= 0 ? i + storeDir.Length + 1 : 0;
+			return last > start ? path.Substring(start, last - start) : "";
 		}
 
 		private static void AddPresetFiles(JSONArray arr, string dir, string search) {
@@ -699,13 +741,13 @@ namespace VaMMCP.Api {
 			if (all) {
 				foreach (Atom a in SC.GetAtoms()) {
 					if (a == null || a.type != "Person") continue;
-					ApplyPresetStorables(a, path);
+					ApplyPresetFile(a, path, "pose");
 					applied.Add(a.uid);
 				}
 				if (applied.Count == 0) throw new ApiError("no Person atom in the current scene");
 			} else {
 				p = RequirePerson(S(args, "person"));
-				ApplyPresetStorables(p, path);
+				ApplyPresetFile(p, path, "pose");
 				applied.Add(p.uid);
 			}
 			JSONClass r = new JSONClass();
@@ -719,12 +761,35 @@ namespace VaMMCP.Api {
 			Atom p = RequirePerson(S(args, "person"));
 			string path = S(args, "path");
 			if (path == "") throw new ApiError("path required");
-			ApplyPresetStorables(p, path);
+			ApplyPresetFile(p, path, kind);
 			JSONClass r = new JSONClass();
 			r["person"] = p.uid;
 			r["path"] = path;
 			r["kind"] = kind;
 			return r;
+		}
+
+		private static readonly Dictionary<string, string> PresetManagerIds = new Dictionary<string, string> {
+			{ "pose", "PosePresets" },
+			{ "look", "AppearancePresets" },
+			{ "clothing", "ClothingPresets" },
+			{ "hair", "HairPresets" },
+		};
+
+		/// <summary>
+		/// A .vap loads the way VaM's preset browser loads it, through the person's preset manager for that kind (so a
+		/// pose lands where the person stands); a legacy .json preset restores its storables directly.
+		/// </summary>
+		private static void ApplyPresetFile(Atom a, string path, string kind) {
+			if (!path.EndsWith(".vap", StringComparison.OrdinalIgnoreCase)) {
+				ApplyPresetStorables(a, path);
+				return;
+			}
+			if (!FileManagerSecure.FileExists(path)) throw new ApiError("preset not found: " + path);
+			string id = PresetManagerIds[kind];
+			JSONStorable manager = a.GetStorableByID(id);
+			if (manager == null) throw new ApiError("no " + id + " storable on " + a.uid);
+			Invoke(manager, "LoadPresetWithPath", path);
 		}
 
 		public JSONNode SaveLook(JSONNode args) {

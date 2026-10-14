@@ -44,8 +44,8 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 | --- | --- | --- |
 | `add_person` | `uid?` | Add a Person (VaM may rename the uid — trust the return value) |
 | `list_persons` | — | Persons in the scene (uid/character/gender/position) |
-| `list_looks` | `search?` | Appearance presets (`Saves/Person/Appearance`) |
-| `load_look` | `path`*, `person?` | Apply an appearance preset (character/clothing/hair/morph deltas; asynchronous, verify a moment later) |
+| `list_looks` | `search?`, `limit?` | Appearance presets as VaM's browser finds them: `.vap` under `Custom/Atom/Person/Appearance`, loose and in packages (newest version only), plus legacy `.json` from `Saves/Person/Appearance`. Rows: `path`, `name`, `folder`, `package`; `search` matches the path; `count` is the total, `limit` (200) caps the rows |
+| `load_look` | `path`*, `person?` | Apply an appearance preset (character/clothing/hair/morph deltas; asynchronous, verify a moment later). A `.vap` loads through the person's AppearancePresets manager, as VaM's preset browser does |
 | `save_look` | `path?`, `person?` | Export an appearance preset (**note**: VaM presets do not carry the full material parameter set — re-apply skin parameters after moving a look between scenes) |
 | `set_character` | `person?`, `name`* | Switch the base character mesh (names come from the choices of `get_param storable=geometry param=characterSelection`) |
 
@@ -83,8 +83,8 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 
 | Tool | Arguments | Notes |
 | --- | --- | --- |
-| `list_poses` | `search?` | Pose presets (`Saves/Person/Pose`) |
-| `load_pose` | `path`*, `person?`, `all?` | Apply a pose (`all=true` applies it to every person) |
+| `list_poses` | `search?`, `limit?` | Pose presets as VaM's browser finds them: `.vap` under `Custom/Atom/Person/Pose`, loose and in packages (newest version only), plus legacy `.json` from `Saves/Person/Pose`. Rows: `path`, `name`, `folder`, `package`; `search` matches the path; `count` is the total, `limit` (200) caps the rows |
+| `load_pose` | `path`*, `person?`, `all?` | Apply a pose (`all=true` applies it to every person). A `.vap` loads through the person's PosePresets manager, as VaM's preset browser does, so the pose lands where the person stands |
 | `save_pose` | `path?`, `person?` | Export a pose |
 | `list_expressions` | `person?` | Expression morphs (heuristic filter) |
 | `set_expression` | `person?`, `name`*, `value?`, `reset?` | Set an expression (clears the other expressions first by default; `value` defaults to 1) |
