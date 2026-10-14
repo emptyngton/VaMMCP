@@ -30,18 +30,18 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | --- | --- | --- |
 | `list_atom_types` | — | 可创建的原子类型（按分类，来自 VaM 运行时数据） |
 | `list_atoms` | `type?` | 场景原子列表（uid/type/on/位置/旋转） |
-| `add_atom` | `type`*, `uid?` | 创建原子，等待其就绪（最长 45s） |
+| `add_atom` | `type`*, `uid?`, `position?`, `rotation?`, `look_at?` | 创建原子，等待其就绪（最长 45s）；给出 `position`、`rotation` 或 `look_at` 时随即放置，同 `set_atom_transform` |
 | `remove_atom` | `uid`* | 删除原子 |
 | `set_atom_on` | `uid`*, `on`* | 显示/隐藏 |
 | `set_atom_parent` | `uid`*, `parent`* | 将 atom 设为另一个 atom 的子级以跟随它；`parent` 为空时清除父级。设为 SubScene atom 的子级即加入该子场景，其 uid 随之变为 `SubScene/Atom` |
 | `get_atom_transform` | `uid`* | atom 主控制点（VaM 放置并保存 atom 的位置）的世界坐标/欧拉角，以及缩放 |
-| `set_atom_transform` | `uid`*, `position?`, `rotation?`, `scale?`, `relative?` | 通过 atom 的主控制点移动它，与 VaM 自带的移动手柄一致（`relative=true` 为相对位移） |
+| `set_atom_transform` | `uid`*, `position?`, `rotation?`, `look_at?`, `scale?`, `relative?` | 通过 atom 的主控制点移动它，与 VaM 自带的移动手柄一致（`relative=true` 为相对位移）。`look_at`（`[x,y,z]` 或 `"Atom[/control]"`，人物默认对准胸部）在移动后让 atom 的前向轴指向该处，使聚光灯或相机对准它 |
 
 ## 人物
 
 | 工具 | 参数 | 说明 |
 | --- | --- | --- |
-| `add_person` | `uid?` | 添加人物（uid 可能被 VaM 重命名，以返回值为准） |
+| `add_person` | `uid?`, `position?`, `rotation?` | 添加人物（uid 可能被 VaM 重命名，以返回值为准）；给出 `position` 或 `rotation` 时随即放置 |
 | `list_persons` | — | 人物列表（uid/角色名/性别/位置） |
 | `list_looks` | `search?`, `limit?` | 与 VaM 浏览器一致的外观预设：`Custom/Atom/Person/Appearance` 下的 `.vap`（本地文件与包内，仅最新版本），以及 `Saves/Person/Appearance` 中的旧版 `.json`。每行含 `path`、`name`、`folder`、`package`；`search` 匹配路径；`count` 为总数，`limit`（200）限制行数 |
 | `load_look` | `path`*, `person?` | 应用外观预设（角色/服装/发型/morph 增量；异步，稍后验证）。`.vap` 通过人物的 AppearancePresets 管理器加载，与 VaM 预设浏览器一致 |

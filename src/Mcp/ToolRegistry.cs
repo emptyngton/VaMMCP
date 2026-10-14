@@ -42,9 +42,12 @@ namespace VaMMCP.Mcp {
 			tools.Add(new Tool("list_atoms", "List atoms in the current scene with uid, type, on/off, position, rotation.")
 				.P("type", "string", "Optional atom type filter, e.g. Person", false)
 				.Fn(api.ListAtoms));
-			tools.Add(new Tool("add_atom", "Create an atom of the given type (Person, Light, AnimationPattern, ...). Waits until it exists.")
+			tools.Add(new Tool("add_atom", "Create an atom of the given type (Person, Light, AnimationPattern, ...). Waits until it exists, then places it when position, rotation or look_at is given (as set_atom_transform).")
 				.P("type", "string", "Atom type (see list_atom_types)", true)
 				.P("uid", "string", "Optional uid; auto-generated when omitted", false)
+				.P("position", "array", "[x, y, z] world position", false)
+				.P("rotation", "array", "[x, y, z] euler angles", false)
+				.P("look_at", "any", "[x, y, z] point, or \"Atom\" / \"Atom/control\" (a person aims at its chest), to point the atom's forward axis at (a light or camera shines that way)", false)
 				.Timeout(60000).Poller()
 				.Fn(api.AddAtom));
 			tools.Add(new Tool("remove_atom", "Remove an atom from the scene.")
@@ -61,17 +64,20 @@ namespace VaMMCP.Mcp {
 			tools.Add(new Tool("get_atom_transform", "Get an atom's world position, rotation and scale.")
 				.P("uid", "string", "Atom uid", true)
 				.Fn(api.GetAtomTransform));
-			tools.Add(new Tool("set_atom_transform", "Move/rotate/scale an atom. With relative=true the values are added to the current transform.")
+			tools.Add(new Tool("set_atom_transform", "Move/rotate/scale an atom by its main control, as VaM's move handle does. With relative=true the values are added to the current transform. look_at aims the atom at a point or atom after any move.")
 				.P("uid", "string", "Atom uid", true)
 				.P("position", "array", "[x, y, z] world position", false)
 				.P("rotation", "array", "[x, y, z] euler angles", false)
+				.P("look_at", "any", "[x, y, z] point, or \"Atom\" / \"Atom/control\" (a person aims at its chest), to point the atom's forward axis at (a light or camera shines that way)", false)
 				.P("scale", "array", "[x, y, z] local scale", false)
 				.P("relative", "boolean", "Apply relative to current transform (default false)", false)
 				.Fn(api.SetAtomTransform));
 
 			// ---------- persons ----------
-			tools.Add(new Tool("add_person", "Add a Person atom to the scene. Waits until it exists.")
+			tools.Add(new Tool("add_person", "Add a Person atom to the scene. Waits until it exists, then places it when position or rotation is given.")
 				.P("uid", "string", "Optional uid (default auto)", false)
+				.P("position", "array", "[x, y, z] world position", false)
+				.P("rotation", "array", "[x, y, z] euler angles", false)
 				.Timeout(90000).Poller()
 				.Fn(api.AddPerson));
 			tools.Add(new Tool("list_persons", "List Person atoms: uid, character, gender, on/off, position.")

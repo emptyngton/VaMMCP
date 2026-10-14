@@ -31,18 +31,18 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 | --- | --- | --- |
 | `list_atom_types` | — | Creatable atom types, grouped by category (from VaM's runtime data) |
 | `list_atoms` | `type?` | Atoms in the scene (uid/type/on/position/rotation) |
-| `add_atom` | `type`*, `uid?` | Create an atom and wait until it is ready (up to 45 s) |
+| `add_atom` | `type`*, `uid?`, `position?`, `rotation?`, `look_at?` | Create an atom and wait until it is ready (up to 45 s), then place it when `position`, `rotation` or `look_at` is given, as `set_atom_transform` |
 | `remove_atom` | `uid`* | Delete an atom |
 | `set_atom_on` | `uid`*, `on`* | Show/hide |
 | `set_atom_parent` | `uid`*, `parent`* | Parent an atom to another so it follows it; an empty `parent` clears it. Parenting to a SubScene atom is how an atom joins that subscene, and its uid then becomes `SubScene/Atom` |
 | `get_atom_transform` | `uid`* | World position / euler angles of the atom's main control (where VaM places and saves it), and scale |
-| `set_atom_transform` | `uid`*, `position?`, `rotation?`, `scale?`, `relative?` | Moves the atom by its main control, as VaM's own move handle does (`relative=true` offsets instead of setting) |
+| `set_atom_transform` | `uid`*, `position?`, `rotation?`, `look_at?`, `scale?`, `relative?` | Moves the atom by its main control, as VaM's own move handle does (`relative=true` offsets instead of setting). `look_at` (`[x,y,z]` or `"Atom[/control]"`, a person aims at its chest) points the atom's forward axis there after any move, so a spotlight or camera shines at it |
 
 ## Person
 
 | Tool | Arguments | Notes |
 | --- | --- | --- |
-| `add_person` | `uid?` | Add a Person (VaM may rename the uid — trust the return value) |
+| `add_person` | `uid?`, `position?`, `rotation?` | Add a Person (VaM may rename the uid — trust the return value), placed when `position` or `rotation` is given |
 | `list_persons` | — | Persons in the scene (uid/character/gender/position) |
 | `list_looks` | `search?`, `limit?` | Appearance presets as VaM's browser finds them: `.vap` under `Custom/Atom/Person/Appearance`, loose and in packages (newest version only), plus legacy `.json` from `Saves/Person/Appearance`. Rows: `path`, `name`, `folder`, `package`; `search` matches the path; `count` is the total, `limit` (200) caps the rows |
 | `load_look` | `path`*, `person?` | Apply an appearance preset (character/clothing/hair/morph deltas; asynchronous, verify a moment later). A `.vap` loads through the person's AppearancePresets manager, as VaM's preset browser does |

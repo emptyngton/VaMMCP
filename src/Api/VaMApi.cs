@@ -412,6 +412,16 @@ namespace VaMMCP.Api {
 			JSONClass r = new JSONClass();
 			r["uid"] = created;
 			r["type"] = type;
+			if (Has(args, "position") || Has(args, "rotation") || Has(args, "look_at")) {
+				JSONClass place = new JSONClass();
+				place["uid"] = created;
+				foreach (string key in new[] { "position", "rotation", "look_at" }) {
+					if (Has(args, key)) place[key] = args[key];
+				}
+				JSONNode placed = Mt.Run(() => SetAtomTransform(place), 10000);
+				r["position"] = placed["position"];
+				r["rotation"] = placed["rotation"];
+			}
 			return r;
 		}
 
@@ -486,6 +496,12 @@ namespace VaMMCP.Api {
 			if (Has(args, "rotation")) {
 				Quaternion q = Quaternion.Euler(ParseVec3(args["rotation"]));
 				t.rotation = relative ? t.rotation * q : q;
+			}
+			if (Has(args, "look_at")) {
+				if (Has(args, "rotation")) throw new ApiError("pass rotation or look_at, not both");
+				JSONNode at = args["look_at"];
+				Vector3 target = at.AsArray != null ? ParseVec3(at) : ResolveSnapshotTarget(at.Value).Point;
+				t.rotation = LookRotation(t.position, target);
 			}
 			if (Has(args, "scale")) {
 				Vector3 s = ParseVec3(args["scale"]);
