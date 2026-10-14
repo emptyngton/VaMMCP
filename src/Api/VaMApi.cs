@@ -16,7 +16,7 @@ namespace VaMMCP.Api {
 	/// The VaM control layer. Every method must be called on the Unity main thread
 	/// (wrap with MainThreadDispatcher.Run), except AddAtom-style pollers.
 	/// </summary>
-	public class VaMApi {
+	public partial class VaMApi {
 		public readonly MainThreadDispatcher Mt;
 
 		public VaMApi(MainThreadDispatcher mt) {

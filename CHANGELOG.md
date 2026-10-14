@@ -23,6 +23,10 @@ All notable changes to this project are documented here. The format follows
   control does not follow the root at all.
 
 ### Added
+- `atom_bounds`: an atom's visible and physical boxes, its size along its own axes, and a person's top, soles
+  and height.
+- `probe`: what a ray from a point or atom hits (floor, seat, bed, wall), with point, distance, normal and
+  atom.
 - `set_control_link`: VaM's Link To, a control following a rigidbody of another atom (Parent Link or
   Physics Link), for trackers on bones or props in hands; saved with the scene.
 - `set_atom_parent`: parent an atom to another, or clear its parent; parenting to a SubScene atom adds the

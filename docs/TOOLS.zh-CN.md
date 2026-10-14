@@ -1,4 +1,4 @@
-# 工具参考（75 个）
+# 工具参考（77 个）
 
 *[English](TOOLS.md)*
 
@@ -123,6 +123,13 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | --- | --- | --- |
 | `scene_dependencies` | `path?`, `list?` | 场景所需的包。在主线程之外流式读取场景文件（默认为 VaM 最近加载的场景）及其子场景中的包引用；对于包内的场景，其 `meta.json` 中的依赖也计入。随后检查所有 Timeline 在人物上驱动的形变，并询问该人物每个形变来自哪个包。Timeline 只按名称保存形变，而 VaM 只在保存时形变非零才记录其所属包，因此 Timeline 需要但没有任何引用覆盖的包会列在 `missing_from_references` 中，并给出建议的 `minN` 引用；`morphs_not_found` 列出人物身上根本没有的形变（包未安装）。`list=true` 时同时列出每个被引用的包及其版本 |
 | `find_broken_triggers` | `path?`, `limit?` | 场景文件中的所有触发动作（按钮、Timeline 触发轨道、插件触发器、碰撞触发器），在主线程之外流式读取，并对照当前场景检查。列出接收原子、存储项或目标已不存在、因而静默失效的动作：被清空的接收原子（动作指向的原子被删除后 VaM 留下的状态）、缺失的原子、缺失的存储项（插件被移除或改名）、缺失的参数或动作、人物身上缺失的形变。按问题分组，附数量和最多 5 个触发位置 |
+
+## 测量
+
+| 工具 | 参数 | 说明 |
+| --- | --- | --- |
+| `atom_bounds` | `uid`* | 原子的大小与边界：围绕可见网格的世界轴对齐包围盒（`visual`）和围绕碰撞体的包围盒（`physical`，即身体所依靠的表面），各含 `min`、`max`、`size`、`center`、`top`、`bottom`。`local_size` 是沿原子自身坐标轴的可见尺寸，因此旋转后的桌子仍给出真实的长宽。人物另有由身体碰撞体得出的 `top`、`soles` 和 `height`。只计算原子自身的部件，不含其子原子；不计 VaM 的控制手柄 |
+| `probe` | `from`*, `direction?`, `max_distance?`, `all?`, `ignore?` | 从 `[x,y,z]` 或 `"Atom[/control]"` 发射射线，报告命中：`point`、`distance`、`normal`、`atom`、`collider`、`layer`。默认竖直向下，用于找到某点下方的地面、座位或床面（从天花板以下发射）；任意 `direction` 可测到墙的距离。跳过触发器和控制手柄；`ignore` 可穿过站在该处的人物等原子；`all=true` 列出最多 10 个命中 |
 
 ## Voxta
 

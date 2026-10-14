@@ -72,6 +72,16 @@ namespace VaMMCP.Mcp {
 				.P("scale", "array", "[x, y, z] local scale", false)
 				.P("relative", "boolean", "Apply relative to current transform (default false)", false)
 				.Fn(api.SetAtomTransform));
+			tools.Add(new Tool("atom_bounds", "How big an atom is and where its edges are: a world-aligned box around its visible meshes (visual) and one around its colliders (physical, what bodies rest on), each with min, max, size, center, top and bottom; local_size is the visible size along the atom's own axes (a rotated table still reads as its real length and width). A person also gets top, soles and height. Only the atom's own parts, not atoms parented to it; VaM's control handles are left out.")
+				.P("uid", "string", "Atom uid", true)
+				.Fn(api.AtomBounds));
+			tools.Add(new Tool("probe", "Cast a ray and report what it hits: point, distance, surface normal, atom and collider. Default straight down, to find the floor, a seat or a bed top under a point (cast from below the ceiling). Skips triggers and VaM's control handles; ignore sees through atoms such as a person standing on the spot.")
+				.P("from", "any", "Start: [x, y, z] or \"Atom\" / \"Atom/control\"", true)
+				.P("direction", "array", "[x, y, z] (default [0, -1, 0], straight down)", false)
+				.P("max_distance", "number", "Metres (default 20)", false)
+				.P("all", "boolean", "List up to 10 hits along the ray instead of the first (default false)", false)
+				.P("ignore", "array", "Atom uids to see through", false)
+				.Fn(api.Probe));
 
 			// ---------- persons ----------
 			tools.Add(new Tool("add_person", "Add a Person atom to the scene. Waits until it exists, then places it when position or rotation is given.")
