@@ -244,6 +244,10 @@ namespace VaMMCP.Mcp {
 				.P("timeout", "number", "Seconds to wait for the body to get there (default 8, max 30)", false)
 				.Timeout(60000).Poller()
 				.Fn(api.PlayAnimation));
+			tools.Add(new Tool("list_animations", "List Timeline animations as Timeline holds them. Without uid: one summary per atom with Timeline (clip count, what is playing, problems). With uid: every clip with segment, layer, length, loop, speed, playing, and how many controllers, floats (morphs etc.) and trigger tracks it animates. Flags names that hide control characters (shown escaped, e.g. \\r) or repeat in the same segment and layer.")
+				.P("uid", "string", "Atom uid for the full clip list (default: summary of every atom with Timeline)", false)
+				.P("targets", "boolean", "With uid: also list each clip's controller, float and trigger target names (default false)", false)
+				.Fn(api.ListAnimations));
 
 			// ---------- camera ----------
 			tools.Add(new Tool("get_camera", "Read the monitor camera position, rotation and FOV.")

@@ -1683,6 +1683,155 @@ namespace VaMMCP.Api {
 			return worst;
 		}
 
+		// ===================== timeline =====================
+
+		/// <summary>
+		/// Timeline animations as Timeline itself holds them (plugin.animation.clips), read by member name so it
+		/// keeps working across Timeline versions. Without a uid: one summary per atom that has Timeline. With a
+		/// uid: every clip of that atom, each flagged when its name hides control characters or repeats a name in
+		/// the same segment and layer.
+		/// </summary>
+		public JSONNode ListAnimations(JSONNode args) {
+			string uid = S(args, "uid");
+			bool targets = Bool(args, "targets", false);
+			JSONArray atoms = new JSONArray();
+			int problemCount = 0;
+			foreach (Atom a in SC.GetAtoms()) {
+				if (a == null || (uid != "" && a.uid != uid)) continue;
+				foreach (string id in a.GetStorableIDs()) {
+					if (!id.EndsWith("VamTimeline.AtomPlugin")) continue;
+					JSONClass t = DescribeTimeline(a, a.GetStorableByID(id), uid != "", targets);
+					if (t == null) continue;
+					problemCount += t["problems"].AsArray.Count;
+					atoms.Add(t);
+				}
+			}
+			if (uid != "" && atoms.Count == 0) {
+				FindAtom(uid);
+				throw new ApiError("no Timeline plugin on " + uid);
+			}
+			JSONClass r = new JSONClass();
+			r["timelines"] = JSONRaw.Num(atoms.Count);
+			r["problems"] = JSONRaw.Num(problemCount);
+			r["atoms"] = atoms;
+			return r;
+		}
+
+		private static JSONClass DescribeTimeline(Atom a, JSONStorable st, bool withClips, bool withTargets) {
+			object animation = ReadMember(st, "animation");
+			IList clips = ReadMember(animation, "clips") as IList;
+			if (clips == null) return null;
+
+			JSONClass t = new JSONClass();
+			t["uid"] = a.uid;
+			t["storable"] = st.storeId;
+			t["is_playing"] = JSONRaw.Bool(ReadMember(animation, "isPlaying") as bool? ?? false);
+			string segment = ReadMember(animation, "playingAnimationSegment") as string;
+			if (!string.IsNullOrEmpty(segment)) t["playing_segment"] = Visible(segment);
+			t["clip_count"] = JSONRaw.Num(clips.Count);
+
+			JSONArray problems = new JSONArray();
+			JSONArray playing = new JSONArray();
+			JSONArray list = new JSONArray();
+			Dictionary<string, int> seen = new Dictionary<string, int>();
+			foreach (object clip in clips) {
+				string name = ReadMember(clip, "animationName") as string ?? "";
+				string seg = ReadMember(clip, "animationSegment") as string ?? "";
+				string layer = ReadMember(clip, "animationLayer") as string ?? "";
+				bool isPlaying = ReadMember(clip, "playbackEnabled") as bool? ?? false;
+				IList controllers = ReadMember(clip, "targetControllers") as IList;
+				IList floats = ReadMember(clip, "targetFloatParams") as IList;
+				IList triggers = ReadMember(clip, "targetTriggers") as IList;
+				int nControllers = controllers != null ? controllers.Count : 0;
+				int nFloats = floats != null ? floats.Count : 0;
+				int nTriggers = triggers != null ? triggers.Count : 0;
+
+				JSONArray flags = new JSONArray();
+				string[] fields = { "name", "segment", "layer" };
+				string[] values = { name, seg, layer };
+				for (int i = 0; i < fields.Length; i++) {
+					string hidden = DescribeHiddenCharacters(values[i]);
+					if (hidden != null) flags.Add("hidden characters in the " + fields[i] + " \"" + Visible(values[i]) + "\": " + hidden);
+				}
+				string key = seg + "\u0001" + layer + "\u0001" + name;
+				int count;
+				seen.TryGetValue(key, out count);
+				seen[key] = count + 1;
+				if (count == 1) flags.Add("duplicate name in segment \"" + Visible(seg) + "\", layer \"" + Visible(layer) + "\"");
+				foreach (JSONNode f in flags) problems.Add(Visible(name) + ": " + f.Value);
+				if (isPlaying) playing.Add(Visible(name));
+
+				if (!withClips) continue;
+				JSONClass c = new JSONClass();
+				c["name"] = Visible(name);
+				c["segment"] = Visible(seg);
+				c["layer"] = Visible(layer);
+				c["length"] = F(ReadMember(clip, "animationLength") as float? ?? 0f);
+				c["loop"] = JSONRaw.Bool(ReadMember(clip, "loop") as bool? ?? false);
+				c["speed"] = F(ReadMember(clip, "speed") as float? ?? 1f);
+				if (isPlaying) c["playing"] = JSONRaw.Bool(true);
+				c["controllers"] = JSONRaw.Num(nControllers);
+				c["floats"] = JSONRaw.Num(nFloats);
+				c["triggers"] = JSONRaw.Num(nTriggers);
+				if (nControllers + nFloats + nTriggers == 0) c["empty"] = JSONRaw.Bool(true);
+				if (flags.Count > 0) c["flags"] = flags;
+				if (withTargets) {
+					c["controller_targets"] = TargetNames(controllers);
+					c["float_targets"] = TargetNames(floats);
+					c["trigger_targets"] = TargetNames(triggers);
+				}
+				list.Add(c);
+			}
+			t["playing"] = playing;
+			t["problems"] = problems;
+			if (withClips) t["clips"] = list;
+			return t;
+		}
+
+		private static JSONArray TargetNames(IList targets) {
+			JSONArray names = new JSONArray();
+			if (targets == null) return names;
+			foreach (object target in targets) names.Add(Visible(ReadMember(target, "name") as string ?? target.ToString()));
+			return names;
+		}
+
+		/// <summary>Null when the text is clean, otherwise which control characters or edge spaces it hides.</summary>
+		private static string DescribeHiddenCharacters(string text) {
+			if (string.IsNullOrEmpty(text)) return null;
+			List<string> found = new List<string>();
+			foreach (char ch in text) {
+				if (ch >= ' ' && ch != '\u007f') continue;
+				string label = ch == '\r' ? "\\r" : ch == '\n' ? "\\n" : ch == '\t' ? "\\t" : "\\u" + ((int)ch).ToString("x4");
+				if (!found.Contains(label)) found.Add(label);
+			}
+			if (text != text.Trim()) found.Add("leading or trailing spaces");
+			return found.Count == 0 ? null : string.Join(", ", found.ToArray());
+		}
+
+		/// <summary>The text with control characters written out, so a name shows what it really contains.</summary>
+		private static string Visible(string text) {
+			if (string.IsNullOrEmpty(text)) return text ?? "";
+			StringBuilder sb = new StringBuilder(text.Length);
+			foreach (char ch in text) {
+				if (ch == '\r') sb.Append("\\r");
+				else if (ch == '\n') sb.Append("\\n");
+				else if (ch == '\t') sb.Append("\\t");
+				else if (ch < ' ' || ch == '\u007f') sb.Append("\\u").Append(((int)ch).ToString("x4"));
+				else sb.Append(ch);
+			}
+			return sb.ToString();
+		}
+
+		/// <summary>A public instance property or field by name, of any type, or null.</summary>
+		private static object ReadMember(object target, string name) {
+			if (target == null) return null;
+			Type t = target.GetType();
+			PropertyInfo p = t.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+			if (p != null && p.GetIndexParameters().Length == 0) return p.GetValue(target, null);
+			FieldInfo f = t.GetField(name, BindingFlags.Public | BindingFlags.Instance);
+			return f != null ? f.GetValue(target) : null;
+		}
+
 		// ===================== log =====================
 
 		private const string LogTimeFormat = "yyyy-MM-dd HH:mm:ss.fff";

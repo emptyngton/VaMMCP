@@ -1,4 +1,4 @@
-# Tool reference (66 tools)
+# Tool reference (67 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -93,6 +93,7 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 | Tool | Arguments | Notes |
 | --- | --- | --- |
 | `play_animation` | `animation`*, `person?`, `storable?`, `tolerance?`, `timeout?` | Play a Timeline animation (`Play <animation>`) with the person's collisions off, then turn them back on once hip, chest and head are within `tolerance` metres (default 0.05) of their controls. Started from somewhere else, the body flies across the scene to reach the pose and hits everything on the way, so use this instead of `call_action`. If the body is not there within `timeout` seconds (default 8), collisions stay off and the result says so |
+| `list_animations` | `uid?`, `targets?` | Timeline animations as Timeline holds them. Without `uid`: one summary per atom with Timeline (clip count, what is playing, problems). With `uid`: every clip with segment, layer, length, loop, speed, playing, and how many controllers, floats (morphs etc.) and trigger tracks it animates; `targets=true` also lists them by name. Flags a name, segment or layer that hides control characters (shown escaped, e.g. `\r`) and names repeated in the same segment and layer |
 
 ## Bone control
 

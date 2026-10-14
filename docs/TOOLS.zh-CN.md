@@ -1,4 +1,4 @@
-# 工具参考（66 个）
+# 工具参考（67 个）
 
 *[English](TOOLS.md)*
 
@@ -92,6 +92,7 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | 工具 | 参数 | 说明 |
 | --- | --- | --- |
 | `play_animation` | `animation`*, `person?`, `storable?`, `tolerance?`, `timeout?` | 播放 Timeline 动画（`Play <animation>`）前关闭人物碰撞，等臀部、胸部、头部与其控制点的距离都在 `tolerance` 米以内（默认 0.05）后再打开。人物不在动画起始位置时，身体会飞过场景、撞到沿途的一切，所以请用它代替 `call_action`。若 `timeout` 秒内（默认 8）未就位，碰撞保持关闭，并在结果中说明 |
+| `list_animations` | `uid?`, `targets?` | 读取 Timeline 中的动画。不带 `uid`：每个带 Timeline 的原子一条摘要（片段数、正在播放的内容、问题）。带 `uid`：列出每个片段的分段、层、时长、循环、速度、是否播放，以及驱动的控制器、浮点参数（形变等）和触发轨道数量；`targets=true` 时同时列出名称。会标出名称、分段或层中隐藏的控制字符（以转义形式显示，如 `\r`），以及同一分段和层中重复的名称 |
 
 ## 骨骼控制
 
