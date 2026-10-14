@@ -249,6 +249,13 @@ namespace VaMMCP.Mcp {
 				.P("targets", "boolean", "With uid: also list each clip's controller, float and trigger target names (default false)", false)
 				.Fn(api.ListAnimations));
 
+			// ---------- dependencies ----------
+			tools.Add(new Tool("scene_dependencies", "The packages the loaded scene really needs. Reads the scene file and its subscenes for package references (streamed, off the main thread), then checks every morph any Timeline animates on a person and asks that person which package the morph came from. Timeline stores morphs by name only and VaM saves a morph's package only while the morph is non-zero, so packages a Timeline needs but no reference covers are listed in missing_from_references with a suggested minN reference; morphs_not_found lists morphs the person doesn't have at all (their package isn't installed).")
+				.P("path", "string", "Scene file to read (default: the scene VaM loaded last)", false)
+				.P("list", "boolean", "Also list every referenced package with its versions and reference count (default false)", false)
+				.Timeout(120000).Poller()
+				.Fn(api.SceneDependencies));
+
 			// ---------- voxta ----------
 			tools.Add(new Tool("voxta_state", "What the Voxta plugin on a person knows right now: connection (connected, status text, last error), chat (active, ready, chat id, characters, scenario), state (idle/listening/thinking/speaking/off), current states and available actions as the server sent them, the current action, the last messages, and the non-empty context slots and action lists. Works with any action setup because it reads what the plugin received.")
 				.P("person", "string", "Atom uid that has the Voxta plugin (default: the first one found)", false)

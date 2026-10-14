@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- `scene_dependencies`: the packages a scene needs, read from the scene, its subscenes and its package's
+  meta.json, plus the packages behind every morph a Timeline animates, flagged when nothing references them.
 - `voxta_state`: the Voxta plugin's connection, chat, state, current states, available actions, current
   action, last messages and context slots in one call.
 - `list_animations`: Timeline clips per atom as Timeline holds them (segment, layer, length, loop, what is

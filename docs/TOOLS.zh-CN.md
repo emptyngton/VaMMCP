@@ -1,4 +1,4 @@
-# 工具参考（68 个）
+# 工具参考（69 个）
 
 *[English](TOOLS.md)*
 
@@ -114,6 +114,12 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | `call_action` | `uid`*, `storable`*, `action`* | 触发 storable 的动作（按钮） |
 
 `type` 可强制指定：`float|bool|string|chooser|color|property`（`property` 走反射读写公共属性，覆盖 customParamNames 如 `gravityX`）。
+
+## 依赖
+
+| 工具 | 参数 | 说明 |
+| --- | --- | --- |
+| `scene_dependencies` | `path?`, `list?` | 场景所需的包。在主线程之外流式读取场景文件（默认为 VaM 最近加载的场景）及其子场景中的包引用；对于包内的场景，其 `meta.json` 中的依赖也计入。随后检查所有 Timeline 在人物上驱动的形变，并询问该人物每个形变来自哪个包。Timeline 只按名称保存形变，而 VaM 只在保存时形变非零才记录其所属包，因此 Timeline 需要但没有任何引用覆盖的包会列在 `missing_from_references` 中，并给出建议的 `minN` 引用；`morphs_not_found` 列出人物身上根本没有的形变（包未安装）。`list=true` 时同时列出每个被引用的包及其版本 |
 
 ## Voxta
 

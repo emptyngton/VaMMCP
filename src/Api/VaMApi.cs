@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using UnityEngine;
 using SimpleJSON;
@@ -1830,6 +1832,233 @@ namespace VaMMCP.Api {
 			if (p != null && p.GetIndexParameters().Length == 0) return p.GetValue(target, null);
 			FieldInfo f = t.GetField(name, BindingFlags.Public | BindingFlags.Instance);
 			return f != null ? f.GetValue(target) : null;
+		}
+
+		// ===================== dependencies =====================
+
+		private static readonly Regex PackageRefPattern = new Regex(
+			@"(?<=^|[\s""'])(?<pkg>[^\s""'/\\:.,]+\.[^\s""'/\\:.,]+)\.(?<ver>\d+|latest|min\d+)(?=:/)", RegexOptions.Compiled);
+		private static readonly Regex SubScenePattern = new Regex(@"""(?<path>(?:SELF:/|[^""\s]*:/)?Custom/SubScene/[^""]+\.json)""", RegexOptions.Compiled);
+
+		/// <summary>
+		/// The packages the loaded scene really needs. Reads the scene file and its subscenes for package references
+		/// (streamed, off the main thread), then asks each person which package every morph its Timeline animates
+		/// comes from. Timeline stores those morphs by name only, and VaM records a morph's package only while the
+		/// morph is non-zero at save time, so they are flagged when no reference covers their package.
+		/// </summary>
+		public JSONNode SceneDependencies(JSONNode args) {
+			string path = S(args, "path");
+			if (path == "") {
+				LogCapture.SceneLoad scene;
+				long lastSeq, dropped;
+				LogCapture.Snapshot(long.MaxValue, out scene, out lastSeq, out dropped);
+				if (scene == null) throw new ApiError("no scene load seen since VaM started; pass path");
+				path = scene.Path;
+			}
+			bool listAll = Bool(args, "list", false);
+
+			Dictionary<string, HashSet<string>> refs = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+			Dictionary<string, int> refCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+			List<string> files = new List<string>();
+			List<string> unreadable = new List<string>();
+			List<string> unreadableReasons = new List<string>();
+			string selfPrefix = path.Contains(":/") ? path.Substring(0, path.IndexOf(":/", StringComparison.Ordinal) + 2) : "";
+			Queue<string> pending = new Queue<string>();
+			pending.Enqueue(path);
+			HashSet<string> queued = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path };
+			while (pending.Count > 0) {
+				string file = pending.Dequeue();
+				string error = ScanFileForReferences(file, refs, refCounts, subScene => {
+					string resolved = subScene.StartsWith("SELF:/", StringComparison.Ordinal) ? selfPrefix + subScene.Substring(6) : subScene;
+					if (queued.Add(resolved)) pending.Enqueue(resolved);
+				});
+				if (error != null) {
+					unreadable.Add(file);
+					unreadableReasons.Add(error);
+					continue;
+				}
+				files.Add(file);
+			}
+			if (files.Count == 0) throw new ApiError("could not read " + path + ": " + unreadableReasons[0]);
+
+			// A packaged scene also declares dependencies in its meta.json; VaM's missing-package scan reads those.
+			int metaDependencies = -1;
+			if (selfPrefix != "") {
+				try {
+					JSONClass meta = JSON.Parse(FileManagerSecure.ReadAllText(selfPrefix + "meta.json")) as JSONClass;
+					JSONClass deps = meta != null ? meta["dependencies"] as JSONClass : null;
+					if (deps != null) {
+						metaDependencies = 0;
+						foreach (string key in deps.Keys) {
+							Match m = Regex.Match(key, @"^(?<pkg>.+)\.(?<ver>\d+|latest|min\d+)$");
+							if (!m.Success) continue;
+							metaDependencies++;
+							string pkg = m.Groups["pkg"].Value;
+							HashSet<string> versions;
+							if (!refs.TryGetValue(pkg, out versions)) {
+								versions = new HashSet<string>();
+								refs[pkg] = versions;
+								refCounts[pkg] = 0;
+							}
+							versions.Add(m.Groups["ver"].Value);
+						}
+					}
+				} catch (Exception) {
+					metaDependencies = -1;
+				}
+			}
+
+			JSONArray morphs = Mt.Run(() => TimelineMorphSources(refs), 20000);
+
+			Dictionary<string, JSONClass> missing = new Dictionary<string, JSONClass>(StringComparer.OrdinalIgnoreCase);
+			JSONArray notFound = new JSONArray();
+			foreach (JSONNode m in morphs) {
+				string source = m["source"].Value;
+				if (source == "not found") notFound.Add(m["person"].Value + ": " + m["morph"].Value);
+				if (source != "package" || m["referenced"].AsBool) continue;
+				string pkg = m["package"].Value;
+				JSONClass entry;
+				if (!missing.TryGetValue(pkg, out entry)) {
+					entry = new JSONClass();
+					entry["package"] = pkg;
+					entry["installed_version"] = m["version"].Value;
+					entry["suggested_reference"] = pkg + ".min" + m["version"].Value;
+					entry["morphs"] = new JSONArray();
+					missing[pkg] = entry;
+				}
+				entry["morphs"].Add(m["person"].Value + ": " + m["morph"].Value);
+			}
+
+			JSONClass r = new JSONClass();
+			r["scene"] = path;
+			JSONArray fileList = new JSONArray();
+			foreach (string f in files) fileList.Add(f);
+			r["files_read"] = fileList;
+			if (unreadable.Count > 0) {
+				JSONArray u = new JSONArray();
+				for (int i = 0; i < unreadable.Count; i++) {
+					JSONClass e = new JSONClass();
+					e["file"] = unreadable[i];
+					e["reason"] = unreadableReasons[i];
+					u.Add(e);
+				}
+				r["unreadable"] = u;
+			}
+			r["referenced_packages"] = JSONRaw.Num(refs.Count);
+			if (metaDependencies >= 0) r["meta_dependencies"] = JSONRaw.Num(metaDependencies);
+			if (listAll) {
+				JSONArray all = new JSONArray();
+				List<string> names = new List<string>(refs.Keys);
+				names.Sort(StringComparer.OrdinalIgnoreCase);
+				foreach (string n in names) {
+					JSONClass p = new JSONClass();
+					p["package"] = n;
+					JSONArray v = new JSONArray();
+					foreach (string ver in refs[n]) v.Add(ver);
+					p["versions"] = v;
+					p["refs"] = JSONRaw.Num(refCounts[n]);
+					all.Add(p);
+				}
+				r["references"] = all;
+			}
+			r["timeline_morphs"] = morphs;
+			JSONArray missingList = new JSONArray();
+			foreach (JSONClass e in missing.Values) missingList.Add(e);
+			r["missing_from_references"] = missingList;
+			if (notFound.Count > 0) r["morphs_not_found"] = notFound;
+			return r;
+		}
+
+		/// <summary>Streams one file line by line; returns why it could not be read, or null.</summary>
+		private static string ScanFileForReferences(string file, Dictionary<string, HashSet<string>> refs, Dictionary<string, int> counts, Action<string> onSubScene) {
+			if (!FileManagerSecure.FileExists(file)) return "file not found";
+			try {
+				using (MVR.FileManagement.FileEntryStreamReader reader = MVR.FileManagement.FileManager.OpenStreamReader(file, false)) {
+					StreamReader sr = reader.StreamReader;
+					string line;
+					while ((line = sr.ReadLine()) != null) {
+						if (line.IndexOf("Custom/SubScene/", StringComparison.Ordinal) >= 0)
+							foreach (Match m in SubScenePattern.Matches(line)) onSubScene(m.Groups["path"].Value);
+						if (line.IndexOf(":/", StringComparison.Ordinal) < 0) continue;
+						foreach (Match m in PackageRefPattern.Matches(line)) {
+							string pkg = m.Groups["pkg"].Value;
+							HashSet<string> versions;
+							if (!refs.TryGetValue(pkg, out versions)) {
+								versions = new HashSet<string>();
+								refs[pkg] = versions;
+								counts[pkg] = 0;
+							}
+							versions.Add(m.Groups["ver"].Value);
+							counts[pkg]++;
+						}
+					}
+				}
+				return null;
+			} catch (Exception e) {
+				return e.Message;
+			}
+		}
+
+		/// <summary>
+		/// Every morph any atom's Timeline animates on a person (a Timeline on an Empty can drive a person's face),
+		/// with where that person loaded the morph from. Main thread.
+		/// </summary>
+		private static JSONArray TimelineMorphSources(Dictionary<string, HashSet<string>> refs) {
+			JSONArray result = new JSONArray();
+			HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			foreach (Atom owner in SC.GetAtoms()) {
+				if (owner == null) continue;
+				foreach (string id in owner.GetStorableIDs()) {
+					if (!id.EndsWith("VamTimeline.AtomPlugin")) continue;
+					IList clips = ReadMember(ReadMember(owner.GetStorableByID(id), "animation"), "clips") as IList;
+					if (clips == null) continue;
+					foreach (object clip in clips) {
+						IList floats = ReadMember(clip, "targetFloatParams") as IList;
+						if (floats == null) continue;
+						foreach (object target in floats) {
+							object reference = ReadMember(target, "animatableRef");
+							string storableId = ReadMember(reference, "storableId") as string ?? "";
+							string param = ReadMember(reference, "floatParamName") as string ?? "";
+							if (storableId != "geometry" || !param.StartsWith("morph: ", StringComparison.Ordinal)) continue;
+							string personUid = ReadMember(reference, "lastKnownAtomUid") as string;
+							if (string.IsNullOrEmpty(personUid)) personUid = owner.uid;
+							string morphName = param.Substring(7);
+							if (!seen.Add(personUid + "\u0001" + morphName)) continue;
+							Atom person = SC.GetAtomByUid(personUid);
+							DAZCharacterSelector sel = person != null ? person.GetStorableByID("geometry") as DAZCharacterSelector : null;
+							JSONClass m = DescribeMorphSource(personUid, morphName, sel, refs);
+							m["animated_by"] = owner.uid;
+							result.Add(m);
+						}
+					}
+				}
+			}
+			return result;
+		}
+
+		private static JSONClass DescribeMorphSource(string person, string morphName, DAZCharacterSelector sel, Dictionary<string, HashSet<string>> refs) {
+			JSONClass m = new JSONClass();
+			m["person"] = person;
+			m["morph"] = morphName;
+			DAZMorph morph = sel != null ? FindMorph(sel, morphName) : null;
+			if (morph == null) {
+				m["source"] = "not found";
+				return m;
+			}
+			if (morph.isInPackage && !string.IsNullOrEmpty(morph.packageUid)) {
+				string uid = morph.packageUid;
+				int dot = uid.LastIndexOf('.');
+				string pkg = dot > 0 ? uid.Substring(0, dot) : uid;
+				m["source"] = "package";
+				m["package"] = pkg;
+				m["version"] = dot > 0 ? uid.Substring(dot + 1) : "";
+				m["referenced"] = JSONRaw.Bool(refs.ContainsKey(pkg));
+				return m;
+			}
+			string morphUid = morph.uid ?? "";
+			m["source"] = morphUid.StartsWith("Custom/", StringComparison.OrdinalIgnoreCase) ? "loose file" : "built in";
+			if (m["source"].Value == "loose file") m["file"] = morphUid;
+			return m;
 		}
 
 		// ===================== voxta =====================
