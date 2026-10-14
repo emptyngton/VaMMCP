@@ -1,4 +1,4 @@
-# 工具参考（65 个）
+# 工具参考（66 个）
 
 *[English](TOOLS.md)*
 
@@ -11,6 +11,9 @@
 
 ### status
 VaM 运行时状态：插件版本、VaM 版本、原子/人物数量、端点、eval 开关。
+
+### read_log
+VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 output_log.txt 没有时间戳）。插件启动后在内存中保留最新 5000 行，场景加载过程中也能读取。参数：`since`（默认 `scene_load`，或 `all`）、`level`（默认 `error`：错误、异常、断言；`warning`；`all`）、`contains`、`after`（上次调用返回的 `last_seq`，只取新行）、`group`（默认 true：同一来源的相同行合并，带 `count` 和 `first_time`）、`stack`（默认 true，前 8 行）、`limit`（默认 100）。每条包含 `time`、`level`、`message`，有调用栈时还有 `source`（栈顶帧，可看出是哪个插件）。Unity 引擎原生消息（如 SoundManager）不会出现。
 
 ## 场景
 

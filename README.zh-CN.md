@@ -23,11 +23,11 @@ MCP 客户端 ──HTTP/JSON-RPC──▶ VaMMCP (BepInEx 插件, VaM 进程内
 > ⚠️ 本项目是**非官方**社区项目，与 Meshed VR / Virt-A-Mate / VaM Hub 无任何关联。
 > 请仅在你合法拥有的 VaM 副本上使用，并遵守 VaM 的 EULA 与 Hub 内容许可。
 
-## ✨ 功能一览（65 个工具）
+## ✨ 功能一览（66 个工具）
 
 | 分类 | 工具 |
 | --- | --- |
-| 状态 | `status` |
+| 状态 | `status` `read_log` |
 | 场景 | `list_scenes` `load_scene` `new_scene` `save_scene` |
 | Atom | `list_atom_types` `list_atoms` `add_atom` `remove_atom` `set_atom_on` `get_atom_transform` `set_atom_transform` |
 | 人物 | `add_person` `list_persons` `list_looks` `load_look` `save_look` `set_character` |
@@ -139,7 +139,7 @@ src/
 │   ├── HttpServer.cs      # 最小 HTTP/1.1 server（Streamable HTTP 传输、Origin 校验、keep-alive）
 │   ├── McpServer.cs       # MCP 协议：initialize / tools/list / tools/call / resources
 │   ├── Tool.cs            # 工具定义（名称/描述/JSON Schema/处理器/超时）
-│   └── ToolRegistry.cs    # 65 个工具注册
+│   └── ToolRegistry.cs    # 66 个工具注册
 └── Api/
     └── VaMApi.cs          # VaM 控制层（全部工具实现）
 ```

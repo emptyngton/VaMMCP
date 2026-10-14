@@ -18,6 +18,7 @@ namespace VaMMCP {
 		private void Awake() {
 			instance = this;
 			Log.Init(Logger);
+			LogCapture.Start();
 
 			cfgEnabled = Config.Bind("Server", "Enabled", true, "Start the MCP HTTP server when VaM launches");
 			cfgPort = Config.Bind("Server", "Port", 9837, "Port for the MCP Streamable HTTP endpoint (bound to 127.0.0.1 only)");
@@ -46,6 +47,7 @@ namespace VaMMCP {
 		}
 
 		private void OnDestroy() {
+			LogCapture.Stop();
 			if (httpServer != null) {
 				try {
 					httpServer.Stop();

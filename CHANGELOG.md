@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- `read_log`: what VaM and its plugins logged, with date and time on every line, since the last scene load by
+  default; errors only, identical lines collapsed with a count and the source that logged them.
 - `set_ui`: show or hide VaM's main UI, and deselect the selected atom so its panel closes.
 - `play_animation`: play a Timeline animation with the person's collisions off until the body has reached the
   animation's pose, so it does not fly through the scene to get there.

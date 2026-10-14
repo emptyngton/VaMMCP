@@ -27,11 +27,11 @@ MCP client ──HTTP/JSON-RPC──▶ VaMMCP (BepInEx plugin, inside the VaM p
 > Meshed VR, Virt-A-Mate or the VaM Hub. Use it only with a copy of VaM you legally own, and
 > respect the VaM EULA and the licence of any Hub content you download.
 
-## ✨ Tools at a glance (65)
+## ✨ Tools at a glance (66)
 
 | Category | Tools |
 | --- | --- |
-| Status | `status` |
+| Status | `status` `read_log` |
 | Scene | `list_scenes` `load_scene` `new_scene` `save_scene` |
 | Atom | `list_atom_types` `list_atoms` `add_atom` `remove_atom` `set_atom_on` `get_atom_transform` `set_atom_transform` |
 | Person | `add_person` `list_persons` `list_looks` `load_look` `save_look` `set_character` |
@@ -146,7 +146,7 @@ src/
 │   ├── HttpServer.cs      # minimal HTTP/1.1 server (Streamable HTTP, Origin check, keep-alive)
 │   ├── McpServer.cs       # MCP protocol: initialize / tools/list / tools/call / resources
 │   ├── Tool.cs            # tool definition (name / description / JSON schema / handler / timeout)
-│   └── ToolRegistry.cs    # all 65 tool registrations
+│   └── ToolRegistry.cs    # all 66 tool registrations
 └── Api/
     └── VaMApi.cs          # VaM control layer (every tool implementation)
 ```

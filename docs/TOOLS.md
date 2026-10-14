@@ -1,4 +1,4 @@
-# Tool reference (65 tools)
+# Tool reference (66 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -12,6 +12,9 @@ in the scene is used. Vectors are `[x, y, z]`.
 
 ### status
 VaM runtime status: plugin version, VaM version, atom/person counts, endpoint, eval switch.
+
+### read_log
+What VaM and its plugins logged, each line stamped with date and time (VaM's own output_log.txt has no timestamps). Captured in memory from plugin start (newest 5000 lines), so it answers even while a scene is loading. Arguments: `since` (`scene_load` default, or `all`), `level` (`error` default: errors, exceptions, asserts; `warning`; `all`), `contains`, `after` (the `last_seq` of an earlier call, to get only new lines), `group` (default true: identical lines from the same source collapsed with `count` and `first_time`), `stack` (default true, first 8 lines), `limit` (default 100). Each entry has `time`, `level`, `message` and, when there is a stack, `source` (its top frame, which names the plugin). Unity's native engine messages (e.g. SoundManager) never reach it.
 
 ## Scene
 

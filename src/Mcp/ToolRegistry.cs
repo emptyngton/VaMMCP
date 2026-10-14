@@ -11,6 +11,16 @@ namespace VaMMCP.Mcp {
 			// ---------- status / session ----------
 			tools.Add(new Tool("status", "VaM runtime status: plugin version, VaM version, atom/person counts, endpoint info.")
 				.Fn(a => api.Status()));
+			tools.Add(new Tool("read_log", "Read what VaM and its plugins logged, each line with date and time. Defaults: since the last scene load, errors only, identical lines collapsed with a count. Pass after=<last_seq from the previous call> to get only new lines. Answers even while a scene is loading.")
+				.P("since", "string", "scene_load (default) or all", false)
+				.P("level", "string", "error (default: errors, exceptions, asserts), warning (also warnings) or all", false)
+				.P("contains", "string", "Only lines containing this text (case-insensitive)", false)
+				.P("after", "number", "Only lines after this sequence number (last_seq of an earlier call); overrides since", false)
+				.P("group", "boolean", "Collapse identical lines into one with a count (default true)", false)
+				.P("stack", "boolean", "Include stack traces, first 8 lines (default true)", false)
+				.P("limit", "number", "Newest entries to return (default 100, max 1000)", false)
+				.Poller()
+				.Fn(api.ReadLog));
 
 			// ---------- scene ----------
 			tools.Add(new Tool("list_scenes", "List scene files under Saves/scene. Returns path + name for each scene.")

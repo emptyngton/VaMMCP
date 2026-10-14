@@ -1683,6 +1683,133 @@ namespace VaMMCP.Api {
 			return worst;
 		}
 
+		// ===================== log =====================
+
+		private const string LogTimeFormat = "yyyy-MM-dd HH:mm:ss.fff";
+
+		/// <summary>
+		/// Lines VaM and Unity logged, from LogCapture: since the last scene load by default, errors only, identical
+		/// lines collapsed with a count. Needs no main thread, so it answers while a scene is still loading.
+		/// </summary>
+		public JSONNode ReadLog(JSONNode args) {
+			string since = S(args, "since");
+			if (since == "") since = "scene_load";
+			if (since != "scene_load" && since != "all") throw new ApiError("since must be scene_load or all");
+			string level = S(args, "level");
+			if (level == "") level = "error";
+			if (level != "error" && level != "warning" && level != "all") throw new ApiError("level must be error, warning or all");
+			long after = (long)Num(args, "after", 0);
+			string contains = S(args, "contains");
+			bool group = Bool(args, "group", true);
+			bool withStack = Bool(args, "stack", true);
+			int limit = Mathf.Clamp((int)Num(args, "limit", 100), 1, 1000);
+
+			LogCapture.SceneLoad scene;
+			long lastSeq;
+			long dropped;
+			List<LogCapture.Entry> entries = LogCapture.Snapshot(after, out scene, out lastSeq, out dropped);
+
+			List<LogCapture.Entry> matching = new List<LogCapture.Entry>();
+			foreach (LogCapture.Entry e in entries) {
+				if (after <= 0 && since == "scene_load" && scene != null && e.Seq < scene.Seq) continue;
+				if (!LogLevelMatches(e.Type, level)) continue;
+				if (e.Message.StartsWith("tool call: ", StringComparison.Ordinal)) continue;
+				if (contains != "" && e.Message.IndexOf(contains, StringComparison.OrdinalIgnoreCase) < 0) continue;
+				matching.Add(e);
+			}
+
+			List<LogGroup> groups = new List<LogGroup>();
+			Dictionary<string, LogGroup> byKey = new Dictionary<string, LogGroup>();
+			foreach (LogCapture.Entry e in matching) {
+				LogGroup g;
+				string key = (int)e.Type + "|" + e.Message + "|" + StackSource(e.Stack);
+				if (group && byKey.TryGetValue(key, out g)) {
+					g.Count++;
+					g.Last = e;
+					continue;
+				}
+				g = new LogGroup { First = e, Last = e, Count = 1 };
+				groups.Add(g);
+				if (group) byKey[key] = g;
+			}
+			groups.Sort((a, b) => a.Last.Seq.CompareTo(b.Last.Seq));
+			int skip = Math.Max(0, groups.Count - limit);
+
+			JSONArray list = new JSONArray();
+			for (int i = skip; i < groups.Count; i++) {
+				LogGroup g = groups[i];
+				JSONClass item = new JSONClass();
+				item["time"] = g.Last.Time.ToString(LogTimeFormat, CultureInfo.InvariantCulture);
+				item["level"] = LogLevelName(g.First.Type);
+				item["message"] = g.First.Message;
+				string source = StackSource(g.First.Stack);
+				if (source != "") item["source"] = source;
+				if (g.Count > 1) {
+					item["count"] = JSONRaw.Num(g.Count);
+					item["first_time"] = g.First.Time.ToString(LogTimeFormat, CultureInfo.InvariantCulture);
+				}
+				if (withStack && g.First.Stack.Trim().Length > 0) item["stack"] = TrimStack(g.First.Stack, 8);
+				list.Add(item);
+			}
+
+			JSONClass r = new JSONClass();
+			if (scene != null) {
+				JSONClass s = new JSONClass();
+				s["path"] = scene.Path;
+				s["loaded_at"] = scene.Time.ToString(LogTimeFormat, CultureInfo.InvariantCulture);
+				r["scene"] = s;
+			}
+			r["since"] = after > 0 ? "after " + after : since;
+			r["level"] = level;
+			r["matching_lines"] = JSONRaw.Num(matching.Count);
+			r["shown"] = JSONRaw.Num(groups.Count - skip);
+			if (skip > 0) r["omitted_older"] = JSONRaw.Num(skip);
+			r["last_seq"] = JSONRaw.Num(lastSeq);
+			if (dropped > 0) r["dropped_before_capture_window"] = JSONRaw.Num(dropped);
+			r["entries"] = list;
+			return r;
+		}
+
+		private class LogGroup {
+			public LogCapture.Entry First;
+			public LogCapture.Entry Last;
+			public int Count;
+		}
+
+		private static bool LogLevelMatches(LogType type, string level) {
+			if (level == "all") return true;
+			bool error = type == LogType.Error || type == LogType.Exception || type == LogType.Assert;
+			if (level == "error") return error;
+			return error || type == LogType.Warning;
+		}
+
+		private static string LogLevelName(LogType type) {
+			switch (type) {
+				case LogType.Error: return "error";
+				case LogType.Exception: return "exception";
+				case LogType.Assert: return "assert";
+				case LogType.Warning: return "warning";
+				default: return "info";
+			}
+		}
+
+		/// <summary>The top frame of a stack trace, which names the plugin and method a line came from.</summary>
+		private static string StackSource(string stack) {
+			string trimmed = stack.Trim();
+			if (trimmed.Length == 0) return "";
+			int end = trimmed.IndexOf('\n');
+			string first = (end < 0 ? trimmed : trimmed.Substring(0, end)).Trim();
+			int at = first.IndexOf(" [0x", StringComparison.Ordinal);
+			if (at > 0) first = first.Substring(0, at);
+			return first.StartsWith("at ", StringComparison.Ordinal) ? first.Substring(3) : first;
+		}
+
+		private static string TrimStack(string stack, int maxLines) {
+			string[] lines = stack.Trim().Split('\n');
+			if (lines.Length <= maxLines) return stack.Trim();
+			return string.Join("\n", lines, 0, maxLines) + "\n... (" + (lines.Length - maxLines) + " more lines)";
+		}
+
 		// ===================== ui =====================
 
 		public JSONNode GetUi() {
