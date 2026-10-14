@@ -74,7 +74,14 @@ namespace VaMMCP.Mcp {
 				.Fn(api.SetAtomTransform));
 			tools.Add(new Tool("atom_bounds", "How big an atom is and where its edges are: a world-aligned box around its visible meshes (visual) and one around its colliders (physical, what bodies rest on), each with min, max, size, center, top and bottom; local_size is the visible size along the atom's own axes (a rotated table still reads as its real length and width). A person also gets top, soles and height. Only the atom's own parts, not atoms parented to it; VaM's control handles are left out.")
 				.P("uid", "string", "Atom uid", true)
+				.P("part", "string", "Only colliders whose name contains this (case-insensitive), e.g. head, glute, lHand, lFoot: that body part's box, read from the colliders so it works with collisions off. No match lists the part names", false)
 				.Fn(api.AtomBounds));
+			tools.Add(new Tool("check_overlap", "Which parts of an atom are inside another atom (or any atom), and how deep: what physics would push apart the moment collisions go back on. Read from the collider shapes, not rays, so it works while collisions are off; run it after placing a person with collisions off and fix anything it reports before turning them on. Only pairs whose layers collide count. Each overlap: part, atom, into (its collider), depth in metres, push (direction that moves the part out), at; soft=true marks soft-body parts (PhysicsMeshJoint, e.g. glutes) whose shallow contact with a seat is just sitting. Mixed push directions on one object mean parts would be pushed through it.")
+				.P("uid", "string", "Atom to check, usually a person", true)
+				.P("with", "string", "Only against this atom (default: every other atom that is on)", false)
+				.P("min_depth", "number", "Ignore overlaps shallower than this, metres (default 0.005)", false)
+				.P("limit", "number", "Overlaps to list, deepest first (default 20); count is the total", false)
+				.Fn(api.CheckOverlap));
 			tools.Add(new Tool("probe", "Cast a ray and report what it hits: point, distance, surface normal, atom and collider. Default straight down, to find the floor, a seat or a bed top under a point (cast from below the ceiling). Skips triggers and VaM's control handles; ignore sees through atoms such as a person standing on the spot.")
 				.P("from", "any", "Start: [x, y, z] or \"Atom\" / \"Atom/control\"", true)
 				.P("direction", "array", "[x, y, z] (default [0, -1, 0], straight down)", false)

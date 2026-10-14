@@ -23,6 +23,10 @@ All notable changes to this project are documented here. The format follows
   control does not follow the root at all.
 
 ### Added
+- `check_overlap`: which parts of an atom are inside another and how deep, from the collider shapes, so a person
+  placed with collisions off can be checked before they go back on.
+- `atom_bounds` takes `part` to measure one body part
+  (head, glute, hand) from its colliders.
 - `atom_bounds`: an atom's visible and physical boxes, its size along its own axes, and a person's top, soles
   and height.
 - `probe`: what a ray from a point or atom hits (floor, seat, bed, wall), with point, distance, normal and

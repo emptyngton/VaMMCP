@@ -1,4 +1,4 @@
-# 工具参考（77 个）
+# 工具参考（78 个）
 
 *[English](TOOLS.md)*
 
@@ -128,7 +128,8 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 
 | 工具 | 参数 | 说明 |
 | --- | --- | --- |
-| `atom_bounds` | `uid`* | 原子的大小与边界：围绕可见网格的世界轴对齐包围盒（`visual`）和围绕碰撞体的包围盒（`physical`，即身体所依靠的表面），各含 `min`、`max`、`size`、`center`、`top`、`bottom`。`local_size` 是沿原子自身坐标轴的可见尺寸，因此旋转后的桌子仍给出真实的长宽。人物另有由身体碰撞体得出的 `top`、`soles` 和 `height`。只计算原子自身的部件，不含其子原子；不计 VaM 的控制手柄 |
+| `atom_bounds` | `uid`*, `part?` | 原子的大小与边界：围绕可见网格的世界轴对齐包围盒（`visual`）和围绕碰撞体的包围盒（`physical`，即身体所依靠的表面），各含 `min`、`max`、`size`、`center`、`top`、`bottom`。`local_size` 是沿原子自身坐标轴的可见尺寸，因此旋转后的桌子仍给出真实的长宽。人物另有由身体碰撞体得出的 `top`、`soles` 和 `height`。只计算原子自身的部件，不含其子原子；不计 VaM 的控制手柄。`part`（如 `head`、`glute`、`lHand`）只测量名称包含该词的碰撞体，直接读取碰撞体，因此碰撞关闭时也可用；无匹配时列出该原子的部位名称 |
+| `check_overlap` | `uid`*, `with?`, `min_depth?`, `limit?` | 原子的哪些部位嵌入了另一个原子（默认为任何开启的原子）以及嵌入多深：即碰撞重新开启的瞬间物理系统会推开的部分。读取碰撞体形状而非射线，因此碰撞关闭时也可用：先在关闭碰撞时摆放人物，运行此工具，修正报告的问题，再开启碰撞。只计算层之间会碰撞的配对。每项包含 `part`、`atom`、`into`、`depth`、`push`（将该部位推出的方向）和 `at`；`soft=true` 表示臀部等软体部位，与座位的浅接触只是坐着。同一物体上 `push` 方向相反，说明部位会被推穿该物体 |
 | `probe` | `from`*, `direction?`, `max_distance?`, `all?`, `ignore?` | 从 `[x,y,z]` 或 `"Atom[/control]"` 发射射线，报告命中：`point`、`distance`、`normal`、`atom`、`collider`、`layer`。默认竖直向下，用于找到某点下方的地面、座位或床面（从天花板以下发射）；任意 `direction` 可测到墙的距离。跳过触发器和控制手柄；`ignore` 可穿过站在该处的人物等原子；`all=true` 列出最多 10 个命中 |
 
 ## Voxta

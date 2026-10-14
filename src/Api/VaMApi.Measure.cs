@@ -17,6 +17,8 @@ namespace VaMMCP.Api {
 		/// </summary>
 		public JSONNode AtomBounds(JSONNode args) {
 			Atom a = FindAtom(S(args, "uid"));
+			string part = S(args, "part");
+			if (part != "") return PartBounds(a, part);
 			Transform frame = Placement(a);
 			bool hasVisual = false, hasPhysical = false, hasLocal = false;
 			Bounds visual = new Bounds(), physical = new Bounds(), local = new Bounds();
@@ -64,6 +66,55 @@ namespace VaMMCP.Api {
 		}
 
 		/// <summary>
+		/// The box around the colliders whose name contains part (case-insensitive): "head", "glute", "lHand". Read from
+		/// the colliders themselves, so it works while the atom's collisions are off. No match lists the part names.
+		/// </summary>
+		private static JSONNode PartBounds(Atom a, string part) {
+			string p = part.ToLowerInvariant();
+			bool has = false;
+			Bounds box = new Bounds();
+			List<string> names = new List<string>();
+			foreach (Collider col in OwnColliders(a)) {
+				if (col.name.ToLowerInvariant().IndexOf(p) < 0) continue;
+				Grow(ref box, ref has, col.bounds);
+				names.Add(col.name);
+			}
+			if (!has) throw new ApiError("no collider on " + a.uid + " has \"" + part + "\" in its name; parts: " + string.Join(", ", PartNames(a).ToArray()));
+			JSONClass r = new JSONClass();
+			r["uid"] = a.uid;
+			r["part"] = part;
+			r["physical"] = BoundsJson(box);
+			r["colliders"] = JSONRaw.Num(names.Count);
+			JSONArray sample = new JSONArray();
+			for (int i = 0; i < names.Count && i < 12; i++) sample.Add(names[i]);
+			r["matched"] = sample;
+			return r;
+		}
+
+		/// <summary>An atom's enabled, solid colliders, without its control handles or atoms parented to it.</summary>
+		private static IEnumerable<Collider> OwnColliders(Atom a) {
+			foreach (Collider col in a.GetComponentsInChildren<Collider>()) {
+				if (!col.enabled || col.isTrigger) continue;
+				if (col.GetComponentInParent<Atom>() != a || IsControlHandle(col.transform)) continue;
+				yield return col;
+			}
+		}
+
+		/// <summary>Collider names with digits and the repeated "AutoCollider" prefixes removed, distinct, to pick a part from.</summary>
+		private static List<string> PartNames(Atom a) {
+			SortedDictionary<string, bool> stems = new SortedDictionary<string, bool>();
+			foreach (Collider col in OwnColliders(a)) {
+				string n = col.name.Replace("AutoColliderAutoColliders", "").Replace("AutoColliderFemaleAutoColliders", "").Replace("AutoColliderMaleAutoColliders", "");
+				System.Text.StringBuilder sb = new System.Text.StringBuilder();
+				foreach (char c in n) if (!char.IsDigit(c)) sb.Append(c);
+				stems[sb.ToString()] = true;
+			}
+			List<string> list = new List<string>(stems.Keys);
+			if (list.Count > 80) list = list.GetRange(0, 80);
+			return list;
+		}
+
+		/// <summary>
 		/// Casts a ray and reports what it hits: point, distance, surface normal, the atom and collider. Default straight
 		/// down, which finds the floor, a seat or a bed top under a point. Skips triggers and VaM's control handles;
 		/// ignore lists atoms to see through (a person standing where you measure).
@@ -107,6 +158,81 @@ namespace VaMMCP.Api {
 			r["direction"] = Vec(dir);
 			r["hits"] = found;
 			if (found.Count == 0) r["note"] = "nothing hit within " + maxDistance.ToString("0.##") + " m";
+			return r;
+		}
+
+		/// <summary>
+		/// Which colliders of an atom sit inside another atom (or any atom), and how deep: what physics would push apart
+		/// the moment collisions go back on. Read from the colliders' shapes, not rays, so it works while collisions are
+		/// off. Only pairs whose layers collide count. push is the direction that would move the first atom's part out.
+		/// </summary>
+		public JSONNode CheckOverlap(JSONNode args) {
+			Atom a = FindAtom(S(args, "uid"));
+			Atom only = Has(args, "with") && S(args, "with") != "" ? FindAtom(S(args, "with")) : null;
+			if (only == a) throw new ApiError("with must be another atom");
+			float minDepth = Num(args, "min_depth", 0.005f);
+			int limit = Mathf.Max(1, (int)Num(args, "limit", 20));
+
+			List<Collider> mine = new List<Collider>(OwnColliders(a));
+			List<KeyValuePair<Atom, Collider>> others = new List<KeyValuePair<Atom, Collider>>();
+			foreach (Atom b in SC.GetAtoms()) {
+				if (b == null || b == a || !b.on || (only != null && b != only)) continue;
+				foreach (Collider col in OwnColliders(b)) others.Add(new KeyValuePair<Atom, Collider>(b, col));
+			}
+
+			Dictionary<string, JSONClass> deepest = new Dictionary<string, JSONClass>();
+			Dictionary<string, float> depths = new Dictionary<string, float>();
+			int pairs = 0, layerSkipped = 0, unsupported = 0;
+			foreach (Collider ca in mine) {
+				Bounds ba = ca.bounds;
+				foreach (KeyValuePair<Atom, Collider> ob in others) {
+					Collider cb = ob.Value;
+					if (!ba.Intersects(cb.bounds)) continue;
+					if (Physics.GetIgnoreLayerCollision(ca.gameObject.layer, cb.gameObject.layer)) { layerSkipped++; continue; }
+					pairs++;
+					Vector3 dir;
+					float dist;
+					bool hit;
+					try {
+						hit = Physics.ComputePenetration(ca, ca.transform.position, ca.transform.rotation, cb, cb.transform.position, cb.transform.rotation, out dir, out dist);
+					} catch {
+						unsupported++;
+						continue;
+					}
+					if (!hit || dist < minDepth) continue;
+					string key = ca.name + "|" + ob.Key.uid + "|" + cb.name;
+					float prev;
+					if (depths.TryGetValue(key, out prev) && prev >= dist) continue;
+					depths[key] = dist;
+					JSONClass o = new JSONClass();
+					o["part"] = ca.name;
+					o["atom"] = ob.Key.uid;
+					o["into"] = cb.name;
+					o["depth"] = F(dist);
+					o["push"] = Vec(dir);
+					o["at"] = Vec(ca.bounds.center);
+					if (ca.name.StartsWith("PhysicsMeshJoint")) o["soft"] = JSONRaw.Bool(true);
+					deepest[key] = o;
+				}
+			}
+
+			List<string> keys = new List<string>(deepest.Keys);
+			keys.Sort((x, y) => depths[y].CompareTo(depths[x]));
+			JSONArray list = new JSONArray();
+			for (int i = 0; i < keys.Count && i < limit; i++) list.Add(deepest[keys[i]]);
+			JSONClass r = new JSONClass();
+			r["uid"] = a.uid;
+			if (only != null) r["with"] = only.uid;
+			int soft = 0;
+			foreach (string k in keys) if (deepest[k]["soft"] != null) soft++;
+			r["clear"] = JSONRaw.Bool(keys.Count == 0);
+			r["count"] = JSONRaw.Num(keys.Count);
+			if (soft > 0) r["soft_count"] = JSONRaw.Num(soft);
+			r["overlaps"] = list;
+			if (keys.Count > 0) r["deepest"] = F(depths[keys[0]]);
+			r["pairs_checked"] = JSONRaw.Num(pairs);
+			if (layerSkipped > 0) r["pairs_skipped_by_layer"] = JSONRaw.Num(layerSkipped);
+			if (unsupported > 0) r["pairs_unsupported"] = JSONRaw.Num(unsupported);
 			return r;
 		}
 

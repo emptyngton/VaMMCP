@@ -1,4 +1,4 @@
-# Tool reference (77 tools)
+# Tool reference (78 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -130,7 +130,8 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 
 | Tool | Arguments | Notes |
 | --- | --- | --- |
-| `atom_bounds` | `uid`* | How big an atom is and where its edges are: a world-aligned box around its visible meshes (`visual`) and one around its colliders (`physical`, what bodies rest on), each with `min`, `max`, `size`, `center`, `top`, `bottom`. `local_size` is the visible size along the atom's own axes, so a rotated table still reads as its real length and width. A person also gets `top`, `soles` and `height` from its body colliders. Only the atom's own parts count, not atoms parented to it; VaM's control handles are left out |
+| `atom_bounds` | `uid`*, `part?` | How big an atom is and where its edges are: a world-aligned box around its visible meshes (`visual`) and one around its colliders (`physical`, what bodies rest on), each with `min`, `max`, `size`, `center`, `top`, `bottom`. `local_size` is the visible size along the atom's own axes, so a rotated table still reads as its real length and width. A person also gets `top`, `soles` and `height` from its body colliders. Only the atom's own parts count, not atoms parented to it; VaM's control handles are left out. `part` (e.g. `head`, `glute`, `lHand`) measures only the colliders with that in their name, read from the colliders so it works while collisions are off; no match lists the atom's part names |
+| `check_overlap` | `uid`*, `with?`, `min_depth?`, `limit?` | Which parts of an atom are inside another atom (default: any atom that is on) and how deep: what physics would push apart the moment collisions go back on. Read from the collider shapes, not rays, so it works while collisions are off: place a person with collisions off, run it, fix what it reports, then turn collisions on. Only pairs whose layers collide count. Each overlap gives `part`, `atom`, `into`, `depth`, `push` (direction that moves the part out) and `at`; `soft=true` marks soft-body parts such as glutes, whose shallow contact with a seat is just sitting. Mixed `push` directions on one object mean parts would be pushed through it |
 | `probe` | `from`*, `direction?`, `max_distance?`, `all?`, `ignore?` | Casts a ray from `[x,y,z]` or `"Atom[/control]"` and reports what it hits: `point`, `distance`, `normal`, `atom`, `collider`, `layer`. Default straight down, to find the floor, a seat or a bed top under a point (cast from below the ceiling); any `direction` measures to a wall. Skips triggers and control handles; `ignore` sees through atoms such as a person standing on the spot; `all=true` lists up to 10 hits |
 
 ## Voxta
