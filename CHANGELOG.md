@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- An atom uid that is not found but matches an atom inside a subscene names it ("inside a subscene it is
+  StudioLights/KeyLight"), in every tool that looks atoms up.
 - `set_atom_transform` takes `look_at` (a point or an atom) to aim an atom such as a spotlight; `add_atom` and
   `add_person` take `position`, `rotation` and `look_at` to place the new atom in the same call.
 

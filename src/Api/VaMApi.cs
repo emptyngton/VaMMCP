@@ -52,14 +52,26 @@ namespace VaMMCP.Api {
 		public static Atom FindAtom(string uid) {
 			if (string.IsNullOrEmpty(uid)) throw new ApiError("atom uid required");
 			Atom a = SC.GetAtomByUid(uid);
-			if (a == null) throw new ApiError("atom not found: " + uid);
+			if (a == null) throw new ApiError("atom not found: " + uid + InSubSceneHint(uid));
 			return a;
+		}
+
+		/// <summary>
+		/// An atom in a subscene answers only to "SubScene/Atom". When a short uid matches such atoms, name them so the
+		/// caller can retry with the full uid; "" otherwise.
+		/// </summary>
+		public static string InSubSceneHint(string uid) {
+			List<string> matches = new List<string>();
+			foreach (Atom a in SC.GetAtoms()) {
+				if (a != null && a.uid.EndsWith("/" + uid)) matches.Add(a.uid);
+			}
+			return matches.Count == 0 ? "" : " (inside a subscene it is " + string.Join(" or ", matches.ToArray()) + ")";
 		}
 
 		public static Atom RequirePerson(string uid) {
 			if (!string.IsNullOrEmpty(uid)) {
 				Atom a = SC.GetAtomByUid(uid);
-				if (a == null) throw new ApiError("person not found: " + uid);
+				if (a == null) throw new ApiError("person not found: " + uid + InSubSceneHint(uid));
 				if (a.type != "Person") throw new ApiError("atom is not a Person: " + uid);
 				return a;
 			}
@@ -1308,7 +1320,7 @@ namespace VaMMCP.Api {
 			int colon = linkTo.IndexOf(':');
 			if (colon < 0) return "link_to is \"Atom:rigidbody\", e.g. \"Person:rHand\"";
 			string atomUid = linkTo.Substring(0, colon);
-			if (SC.GetAtomByUid(atomUid) == null) return "atom not found: " + atomUid;
+			if (SC.GetAtomByUid(atomUid) == null) return "atom not found: " + atomUid + InSubSceneHint(atomUid);
 			List<string> names = SC.GetRigidbodyNamesInAtom(atomUid);
 			string list = names != null && names.Count > 0 ? string.Join(", ", names.ToArray()) : "none";
 			return "no rigidbody " + linkTo.Substring(colon + 1) + " on " + atomUid + " (available: " + list + ")";
@@ -3032,7 +3044,7 @@ namespace VaMMCP.Api {
 					a = SC.GetAtomByUid(atomUid);
 				}
 			}
-			if (a == null) throw new ApiError("target atom not found: " + target);
+			if (a == null) throw new ApiError("target atom not found: " + target + InSubSceneHint(target));
 			Transform t = null;
 			if (controlId == null && a.type == "Person") controlId = "chestControl";
 			if (controlId != null) {
