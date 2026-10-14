@@ -118,8 +118,9 @@ namespace VaMMCP.Mcp {
 			// ---------- clothing / hair ----------
 			tools.Add(new Tool("list_packages", "List installed .var packages (their asset paths are usable in load_clothing_preset / load_hair_preset / add_clothing_item / add_hair_item).")
 				.Fn(a => api.ListPackages()));
-			tools.Add(new Tool("list_clothing_presets", "List clothing presets/items on disk AND inside all .var packages (path may be a package path like 'Package.1:/Custom/Clothing/...').")
-				.P("search", "string", "Optional substring filter", false)
+			tools.Add(new Tool("list_clothing_presets", "List clothing presets: .vap outfits under Custom/Atom/Person/Clothing (loose and in packages, newest version only, with name/folder/package; these load with load_clothing_preset), then clothing items and legacy presets on disk and inside .var packages (path may be a package path like 'Package.1:/Custom/Clothing/...').")
+				.P("search", "string", "Optional substring filter on the path", false)
+				.P("limit", "number", "Rows of .vap presets to return (default 200); count is the total that matched", false)
 				.Fn(api.ListClothingPresets));
 			tools.Add(new Tool("load_clothing_preset", "Apply a clothing preset to a person.")
 				.P("path", "string", "Preset path from list_clothing_presets", true)
@@ -142,8 +143,9 @@ namespace VaMMCP.Mcp {
 				.P("on", "boolean", "true to wear, false to hide", true)
 				.P("person", "string", "Person uid (default: first Person)", false)
 				.Fn(api.SetClothingItemOn));
-			tools.Add(new Tool("list_hair_presets", "List hair presets/items on disk AND inside all .var packages (path may be a package path).")
-				.P("search", "string", "Optional substring filter", false)
+			tools.Add(new Tool("list_hair_presets", "List hair presets: .vap presets under Custom/Atom/Person/Hair (loose and in packages, newest version only, with name/folder/package; these load with load_hair_preset), then hair items and legacy presets on disk and inside .var packages (path may be a package path).")
+				.P("search", "string", "Optional substring filter on the path", false)
+				.P("limit", "number", "Rows of .vap presets to return (default 200); count is the total that matched", false)
 				.Fn(api.ListHairPresets));
 			tools.Add(new Tool("load_hair_preset", "Apply a hair preset to a person.")
 				.P("path", "string", "Preset path from list_hair_presets", true)

@@ -545,10 +545,13 @@ namespace VaMMCP.Api {
 		public JSONNode ListClothingPresets(JSONNode args) {
 			JSONClass r = new JSONClass();
 			JSONArray arr = new JSONArray();
+			int matches = AddVapPresets(arr, "Custom/Atom/Person/Clothing", S(args, "search").ToLowerInvariant(), Mathf.Max(1, (int)Num(args, "limit", 200)));
+			int vapShown = arr.Count;
 			AddPresetFiles(arr, "Saves/Person/Clothing", S(args, "search"));
 			AddPresetFiles(arr, "Custom/Clothing", S(args, "search"));
-			AddPackageItemFiles(arr, "Custom/Clothing", S(args, "search"), 300);
-			r["count"] = JSONRaw.Num(arr.Count);
+			AddPackageItemFiles(arr, "Custom/Clothing", S(args, "search"), vapShown + 300);
+			r["count"] = JSONRaw.Num(matches + arr.Count - vapShown);
+			r["shown"] = JSONRaw.Num(arr.Count);
 			r["presets"] = arr;
 			return r;
 		}
@@ -556,10 +559,13 @@ namespace VaMMCP.Api {
 		public JSONNode ListHairPresets(JSONNode args) {
 			JSONClass r = new JSONClass();
 			JSONArray arr = new JSONArray();
+			int matches = AddVapPresets(arr, "Custom/Atom/Person/Hair", S(args, "search").ToLowerInvariant(), Mathf.Max(1, (int)Num(args, "limit", 200)));
+			int vapShown = arr.Count;
 			AddPresetFiles(arr, "Saves/Person/Hair", S(args, "search"));
 			AddPresetFiles(arr, "Custom/Hair", S(args, "search"));
-			AddPackageItemFiles(arr, "Custom/Hair", S(args, "search"), 300);
-			r["count"] = JSONRaw.Num(arr.Count);
+			AddPackageItemFiles(arr, "Custom/Hair", S(args, "search"), vapShown + 300);
+			r["count"] = JSONRaw.Num(matches + arr.Count - vapShown);
+			r["shown"] = JSONRaw.Num(arr.Count);
 			r["presets"] = arr;
 			return r;
 		}
@@ -655,9 +661,32 @@ namespace VaMMCP.Api {
 		private JSONNode ListPresets(string storeDir, string legacyDir, JSONNode args, string key) {
 			string s = S(args, "search").ToLowerInvariant();
 			int limit = Mathf.Max(1, (int)Num(args, "limit", 200));
+			JSONArray arr = new JSONArray();
+			int matches = AddVapPresets(arr, storeDir, s, limit);
+			foreach (string f in ListJsonFiles(legacyDir)) {
+				if (s != "" && f.ToLowerInvariant().IndexOf(s) < 0) continue;
+				matches++;
+				if (arr.Count >= limit) continue;
+				JSONClass row = new JSONClass();
+				row["path"] = f;
+				row["name"] = FileName(f);
+				row["legacy"] = JSONRaw.Bool(true);
+				arr.Add(row);
+			}
+			JSONClass r = new JSONClass();
+			r["count"] = JSONRaw.Num(matches);
+			r["shown"] = JSONRaw.Num(arr.Count);
+			r[key] = arr;
+			return r;
+		}
+
+		/// <summary>
+		/// Adds the .vap presets under a store folder, loose and in packages (newest version only), up to limit rows.
+		/// Returns how many matched in total.
+		/// </summary>
+		private static int AddVapPresets(JSONArray arr, string storeDir, string s, int limit) {
 			List<MVR.FileManagement.FileEntry> found = new List<MVR.FileManagement.FileEntry>();
 			MVR.FileManagement.FileManager.FindAllFiles(storeDir, "*.vap", found, true);
-			JSONArray arr = new JSONArray();
 			int matches = 0;
 			foreach (MVR.FileManagement.FileEntry fe in found) {
 				MVR.FileManagement.VarFileEntry vfe = fe as MVR.FileManagement.VarFileEntry;
@@ -675,21 +704,7 @@ namespace VaMMCP.Api {
 				if (pkg != null) row["package"] = pkg.Uid;
 				arr.Add(row);
 			}
-			foreach (string f in ListJsonFiles(legacyDir)) {
-				if (s != "" && f.ToLowerInvariant().IndexOf(s) < 0) continue;
-				matches++;
-				if (arr.Count >= limit) continue;
-				JSONClass row = new JSONClass();
-				row["path"] = f;
-				row["name"] = FileName(f);
-				row["legacy"] = JSONRaw.Bool(true);
-				arr.Add(row);
-			}
-			JSONClass r = new JSONClass();
-			r["count"] = JSONRaw.Num(matches);
-			r["shown"] = JSONRaw.Num(arr.Count);
-			r[key] = arr;
-			return r;
+			return matches;
 		}
 
 		/// <summary>"Folder/Preset_Name.vap" -> "Name", the name VaM's preset browser shows.</summary>

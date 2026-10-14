@@ -70,13 +70,13 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | 工具 | 参数 | 说明 |
 | --- | --- | --- |
 | `list_packages` | — | 已安装的 .var 包 |
-| `list_clothing_presets` | `search?` | 服装预设/物品：磁盘 + **递归扫描所有包**的 `Custom/Clothing`（.vam/.json） |
+| `list_clothing_presets` | `search?`, `limit?` | 服装预设/物品：先列出 `Custom/Atom/Person/Clothing` 下的 `.vap` 服装预设（本地文件与包内，仅最新版本，含 `name`、`folder`、`package`；`limit`（200）限制这些行数，`count` 为总数），然后是磁盘 + **递归扫描所有包**的 `Custom/Clothing`（.vam/.json） |
 | `load_clothing_preset` | `path`*, `person?` | 应用服装预设 |
 | `list_clothing_items` | `person?` | 人物当前服装物品（uid/名称/active） |
 | `add_clothing_item` | `path`*, `person?` | 添加服装物品（包路径 `.vam`；等待角色就绪后加载） |
 | `remove_clothing_item` | `id`*, `person?` | 移除 |
 | `set_clothing_item_on` | `id`*, `on`*, `person?` | 穿/脱 |
-| `list_hair_presets` / `load_hair_preset` / `list_hair_items` / `add_hair_item` / `remove_hair_item` / `set_hair_item_on` | 同服装 | 发型（`Custom/Hair`） |
+| `list_hair_presets` / `load_hair_preset` / `list_hair_items` / `add_hair_item` / `remove_hair_item` / `set_hair_item_on` | 同服装 | 发型（先列 `Custom/Atom/Person/Hair` 下的 `.vap` 预设，再列 `Custom/Hair`） |
 
 ## 姿态 / 表情
 

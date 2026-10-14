@@ -71,13 +71,13 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 | Tool | Arguments | Notes |
 | --- | --- | --- |
 | `list_packages` | — | Installed .var packages |
-| `list_clothing_presets` | `search?` | Clothing presets and items: disk **plus a recursive scan of every package**'s `Custom/Clothing` (.vam/.json) |
+| `list_clothing_presets` | `search?`, `limit?` | Clothing presets and items: first the `.vap` outfits under `Custom/Atom/Person/Clothing`, loose and in packages (newest version only, with `name`, `folder`, `package`; `limit` (200) caps these rows, `count` is the total), then disk **plus a recursive scan of every package**'s `Custom/Clothing` (.vam/.json) |
 | `load_clothing_preset` | `path`*, `person?` | Apply a clothing preset |
 | `list_clothing_items` | `person?` | Clothing currently on the person (uid/name/active) |
 | `add_clothing_item` | `path`*, `person?` | Add a clothing item (`.vam` package path; waits for the character to finish loading) |
 | `remove_clothing_item` | `id`*, `person?` | Remove an item |
 | `set_clothing_item_on` | `id`*, `on`*, `person?` | Wear / take off |
-| `list_hair_presets` / `load_hair_preset` / `list_hair_items` / `add_hair_item` / `remove_hair_item` / `set_hair_item_on` | same as clothing | Hair (`Custom/Hair`) |
+| `list_hair_presets` / `load_hair_preset` / `list_hair_items` / `add_hair_item` / `remove_hair_item` / `set_hair_item_on` | same as clothing | Hair (`.vap` presets under `Custom/Atom/Person/Hair`, then `Custom/Hair`) |
 
 ## Pose / expression
 

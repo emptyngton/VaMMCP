@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Fixed
+- `list_clothing_presets` and `list_hair_presets` also list the `.vap` presets under `Custom/Atom/Person/Clothing` and
+  `Hair`, loose and in packages, which they missed before.
 - `list_poses` and `list_looks` find `.vap` presets under `Custom/Atom/Person`, loose and in packages, as VaM's browser
   does; they only read the legacy `Saves/Person` folders before and found nothing on a current install. `load_pose`,
   `load_look` and the clothing and hair preset loaders load a `.vap` through the person's preset manager.
