@@ -210,7 +210,7 @@ namespace VaMMCP.Mcp {
 			tools.Add(new Tool("set_control_link", "VaM's \"Link To\": make a control follow a rigidbody of another atom (a tracker on a knee, a prop in a hand, a hand on a headset controller). mode=parent follows rigidly (Parent Link, the usual choice); mode=physics follows through springs (Physics Link). The control keeps its current world position and that offset is kept, so place it first. Without link_to it only reports the current link; an empty link_to clears it and puts the states back to On. Not the same as set_atom_parent, which is the atom hierarchy.")
 				.P("uid", "string", "Atom uid", true)
 				.P("control", "string", "Control id, e.g. lHandControl (default: the atom's main control)", false)
-				.P("link_to", "string", "\"Atom:rigidbody\", e.g. \"Model:rHand\" or \"[CameraRig]:CenterEye\"; empty clears the link. A wrong name lists the atom's rigidbodies", false)
+				.P("link_to", "string", "\"Atom:rigidbody\": a control point such as \"Model:rHandControl\" (follows where the hand is told to go, exactly) or a bone such as \"Model:rHand\" (follows where physics puts it, can lag or be pushed); also \"[CameraRig]:CenterEye\". Empty clears the link. A wrong name lists the atom's rigidbodies", false)
 				.P("mode", "string", "parent (default) or physics", false)
 				.P("position", "boolean", "Link position (default true)", false)
 				.P("rotation", "boolean", "Link rotation (default true)", false)

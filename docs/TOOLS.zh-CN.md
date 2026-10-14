@@ -102,7 +102,7 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | `list_controls` | `person?` | FreeControllerV3 控制点（headControl / chestControl / …） |
 | `get_control` | `person?`, `control`* | 控制点世界位置/欧拉角 |
 | `set_control` | `person?`, `control`*, `position?`, `rotation?` | 移动/旋转控制点 |
-| `set_control_link` | `uid`*, `control?`, `link_to?`, `mode?`, `position?`, `rotation?` | VaM 的 "Link To"：任意 atom 的控制点（默认为其主控制点）跟随另一个 atom 的刚体，名称格式为 `"Atom:rigidbody"`（如 `"Model:rHand"`、`"[CameraRig]:CenterEye"`）。`mode=parent`（默认）以 Parent Link 刚性跟随；`mode=physics` 以 Physics Link 通过弹簧跟随。控制点保持当前世界坐标，因此应先摆放好。不传 `link_to` 时只报告当前链接；`link_to` 为空时清除链接并将状态恢复为 On；名称错误时列出该 atom 的刚体。与 atom 层级（`set_atom_parent`）不同 |
+| `set_control_link` | `uid`*, `control?`, `link_to?`, `mode?`, `position?`, `rotation?` | VaM 的 "Link To"：任意 atom 的控制点（默认为其主控制点）跟随另一个 atom 的刚体，名称格式为 `"Atom:rigidbody"`：控制点（如 `"Model:rHandControl"`）精确跟随手被指定的目标位置；骨骼（如 `"Model:rHand"`）跟随物理计算后手的实际位置，可能滞后或被推开；也可用 `"[CameraRig]:CenterEye"`。`mode=parent`（默认）以 Parent Link 刚性跟随；`mode=physics` 以 Physics Link 通过弹簧跟随。控制点保持当前世界坐标，因此应先摆放好。不传 `link_to` 时只报告当前链接；`link_to` 为空时清除链接并将状态恢复为 On；名称错误时列出该 atom 的刚体。与 atom 层级（`set_atom_parent`）不同 |
 | `set_gaze` | `person?`, `amount?`, `targetControl?` | 视线（尽力而为；精确控制见 lookAt storable 参数） |
 
 ## 通用参数（长尾全覆盖）
