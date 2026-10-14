@@ -1,4 +1,4 @@
-# Tool reference (74 tools)
+# Tool reference (75 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -103,6 +103,7 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 | `list_controls` | `person?` | FreeControllerV3 control points (headControl / chestControl / …) |
 | `get_control` | `person?`, `control`* | Control point world position / euler angles |
 | `set_control` | `person?`, `control`*, `position?`, `rotation?` | Move / rotate a control point |
+| `set_control_link` | `uid`*, `control?`, `link_to?`, `mode?`, `position?`, `rotation?` | VaM's "Link To": a control of any atom (default: its main control) follows a rigidbody of another atom, named `"Atom:rigidbody"` (e.g. `"Model:rHand"`, `"[CameraRig]:CenterEye"`). `mode=parent` (default) follows rigidly as Parent Link; `mode=physics` follows through springs as Physics Link. The control keeps its world position, so place it first. Without `link_to` it only reports the link; an empty `link_to` clears it and puts the states back to On; a wrong name lists the atom's rigidbodies. Not the atom hierarchy, which is `set_atom_parent` |
 | `set_gaze` | `person?`, `amount?`, `targetControl?` | Gaze (best effort; for precise control use the `lookAt` storable parameters) |
 
 ## Generic parameters (the long tail)

@@ -1155,6 +1155,69 @@ namespace VaMMCP.Api {
 			return r;
 		}
 
+		/// <summary>
+		/// VaM's "Link To": a control follows a rigidbody of another atom (a tracker on a knee, a phone in a hand).
+		/// mode parent follows rigidly, physics follows through springs. The control keeps its world position, so
+		/// place it first. Without link_to it only reports the current link; an empty link_to clears it.
+		/// </summary>
+		public JSONNode SetControlLink(JSONNode args) {
+			Atom a = FindAtom(S(args, "uid"));
+			string controlId = S(args, "control");
+			FreeControllerV3 fc = controlId != "" ? GetControl(a, controlId) : a.mainController;
+			if (fc == null) throw new ApiError(a.uid + " has no main control; pass control");
+			if (Has(args, "link_to")) {
+				string linkTo = S(args, "link_to");
+				if (linkTo == "") {
+					fc.linkToRB = null;
+					if (IsLinkState(fc.currentPositionState)) fc.currentPositionState = FreeControllerV3.PositionState.On;
+					if (fc.currentRotationState == FreeControllerV3.RotationState.ParentLink || fc.currentRotationState == FreeControllerV3.RotationState.PhysicsLink) {
+						fc.currentRotationState = FreeControllerV3.RotationState.On;
+					}
+				} else {
+					Rigidbody rb = SC.RigidbodyNameToRigidbody(linkTo);
+					if (rb == null) throw new ApiError(LinkTargetNotFound(linkTo));
+					if (rb.transform == fc.transform || rb.transform.IsChildOf(fc.transform)) throw new ApiError("cannot link a control to itself");
+					string mode = S(args, "mode");
+					if (mode == "") mode = "parent";
+					if (mode != "parent" && mode != "physics") throw new ApiError("mode must be parent or physics");
+					bool pos = Bool(args, "position", true);
+					bool rot = Bool(args, "rotation", true);
+					if (!pos && !rot) throw new ApiError("link position, rotation or both");
+					bool physics = mode == "physics";
+					if (pos) fc.currentPositionState = physics ? FreeControllerV3.PositionState.PhysicsLink : FreeControllerV3.PositionState.ParentLink;
+					if (rot) fc.currentRotationState = physics ? FreeControllerV3.RotationState.PhysicsLink : FreeControllerV3.RotationState.ParentLink;
+					FreeControllerV3.SelectLinkState state = pos && rot ? FreeControllerV3.SelectLinkState.PositionAndRotation
+						: pos ? FreeControllerV3.SelectLinkState.Position : FreeControllerV3.SelectLinkState.Rotation;
+					fc.SelectLinkToRigidbody(rb, state);
+				}
+			}
+			JSONClass r = new JSONClass();
+			r["uid"] = a.uid;
+			r["control"] = fc.name;
+			Rigidbody linked = fc.linkToRB;
+			Atom linkedAtom = linked != null ? linked.GetComponentInParent<Atom>() : null;
+			r["link_to"] = linked == null ? "" : (linkedAtom != null ? linkedAtom.uid + ":" : "") + linked.name;
+			r["position_state"] = fc.currentPositionState.ToString();
+			r["rotation_state"] = fc.currentRotationState.ToString();
+			r["position"] = Vec(fc.control.position);
+			return r;
+		}
+
+		private static bool IsLinkState(FreeControllerV3.PositionState s) {
+			return s == FreeControllerV3.PositionState.ParentLink || s == FreeControllerV3.PositionState.PhysicsLink;
+		}
+
+		/// <summary>Why a "Atom:rigidbody" name did not resolve, with the atom's rigidbodies when the atom exists.</summary>
+		private static string LinkTargetNotFound(string linkTo) {
+			int colon = linkTo.IndexOf(':');
+			if (colon < 0) return "link_to is \"Atom:rigidbody\", e.g. \"Person:rHand\"";
+			string atomUid = linkTo.Substring(0, colon);
+			if (SC.GetAtomByUid(atomUid) == null) return "atom not found: " + atomUid;
+			List<string> names = SC.GetRigidbodyNamesInAtom(atomUid);
+			string list = names != null && names.Count > 0 ? string.Join(", ", names.ToArray()) : "none";
+			return "no rigidbody " + linkTo.Substring(colon + 1) + " on " + atomUid + " (available: " + list + ")";
+		}
+
 		public JSONNode SetGaze(JSONNode args) {
 			Atom p = RequirePerson(S(args, "person"));
 			JSONStorable lookAt = p.GetStorableByID("lookAt");

@@ -207,6 +207,14 @@ namespace VaMMCP.Mcp {
 				.P("position", "array", "[x, y, z] world position", false)
 				.P("rotation", "array", "[x, y, z] euler angles", false)
 				.Fn(api.SetControl));
+			tools.Add(new Tool("set_control_link", "VaM's \"Link To\": make a control follow a rigidbody of another atom (a tracker on a knee, a prop in a hand, a hand on a headset controller). mode=parent follows rigidly (Parent Link, the usual choice); mode=physics follows through springs (Physics Link). The control keeps its current world position and that offset is kept, so place it first. Without link_to it only reports the current link; an empty link_to clears it and puts the states back to On. Not the same as set_atom_parent, which is the atom hierarchy.")
+				.P("uid", "string", "Atom uid", true)
+				.P("control", "string", "Control id, e.g. lHandControl (default: the atom's main control)", false)
+				.P("link_to", "string", "\"Atom:rigidbody\", e.g. \"Model:rHand\" or \"[CameraRig]:CenterEye\"; empty clears the link. A wrong name lists the atom's rigidbodies", false)
+				.P("mode", "string", "parent (default) or physics", false)
+				.P("position", "boolean", "Link position (default true)", false)
+				.P("rotation", "boolean", "Link rotation (default true)", false)
+				.Fn(api.SetControlLink));
 			tools.Add(new Tool("set_gaze", "Adjust a person's gaze via the lookAt storable (best effort; inspect with list_storable_params storable=lookAt for the full param list).")
 				.P("person", "string", "Person uid (default: first Person)", false)
 				.P("amount", "number", "gazeAmount 0..1 (optional)", false)

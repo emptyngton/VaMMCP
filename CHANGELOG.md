@@ -12,6 +12,8 @@ All notable changes to this project are documented here. The format follows
   control does not follow the root at all.
 
 ### Added
+- `set_control_link`: VaM's Link To, a control following a rigidbody of another atom (Parent Link or
+  Physics Link), for trackers on bones or props in hands; saved with the scene.
 - `set_atom_parent`: parent an atom to another, or clear its parent; parenting to a SubScene atom adds the
   atom to that subscene.
 - `pending_dialogs`: everything on screen waiting for the user (plugin trust prompts, alerts, confirmations,
