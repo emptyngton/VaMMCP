@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- `capture_sequence`: frames over time in one grid image, from the tool's own camera or the screen, with an
+  optional action or safe Timeline animation fired right after frame 0.
 - `snapshot`: pictures from the tool's own camera, at any position, angle and FOV or as an orbit around a
   target, laid out in one grid image, without moving the user's view.
 - `find_broken_triggers`: trigger actions whose receiver atom, storable or target no longer exists, checked

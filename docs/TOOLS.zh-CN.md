@@ -1,4 +1,4 @@
-# 工具参考（71 个）
+# 工具参考（72 个）
 
 *[English](TOOLS.md)*
 
@@ -136,6 +136,7 @@ VaM 及其插件输出的日志，每行带日期和时间（VaM 自己的 outpu
 | `set_camera` | `position?`, `rotation?`, `fov?` | 移动相机 |
 | `capture_view` | `width?`, `height?`, `path?`, `return_image?`, `hide_ui?` | 截取显示器画面，在帧末截取，人物皮肤完整（默认 `Saves/PluginData/vam-mcp/preview.png`，宽 1280，高按屏幕比例）。`hide_ui=true` 时截图期间隐藏 VaM 主界面，截完再恢复。`return_image=true` 时同时以 MCP image 块返回 PNG，读不到 VaM 目录的客户端也能"看"到——分辨率别开太大（如 640×360），超过 4 MB 只落盘不内联 |
 | `snapshot` | `views?`, `orbit?`, `width?`, `height?`, `path?`, `return_image?` | 使用工具自己的相机拍照，用户视角始终不动：这是普通的 Unity 相机而非原子，不会保存进场景，并排除 VaM 的 UI 层。`views` 为 `{position, look_at（[x,y,z] 或 "Atom[/control]"）或 rotation, fov?, label?}` 列表；`orbit` 为围绕目标的 `{target, distance?（2）, height?（0）, angles?（[0,90,180,270]）, fov?}`（人物默认对准 `chestControl`；0 度在其正前方）。最多 16 个视角，每个占一帧，拼成一张网格图（从左到右、从上到下）；结果列出每格的标签、位置和目标。在 VaM 正常渲染帧内绘制，因此人物皮肤完整 |
+| `capture_sequence` | `frames?`, `interval?`, `source?`, `view?`, `action?`, `animation?`, `person?`, `storable?`, `width?`, `height?`, `hide_ui?`, `path?` | 随时间连拍，拼成一张网格图（从左到右、从上到下），用于观察动作：坐下、淡入淡出、说话时的表情。2-16 帧（默认 8），间隔 `interval` 秒（默认 0.5）。`source=camera`（默认）使用工具自己的相机，从 `view`（`{position, look_at 或 rotation, fov?}`）或一次性复制的用户当前视角拍摄，用户视角始终不动；`source=screen` 直接截取屏幕，可拍到淡入淡出等屏幕叠加效果，期间隐藏 VaM 主界面（`hide_ui`，默认 true）。先拍第 0 帧，然后触发 `action`（`{uid, storable, action}`，同 `call_action`）或 `animation`（以安全方式播放的 Timeline 动画，同 `play_animation`）。结果列出每帧相对第 0 帧的时间 |
 
 ## 界面
 

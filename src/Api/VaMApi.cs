@@ -2780,6 +2780,211 @@ namespace VaMMCP.Api {
 			return Quaternion.LookRotation(dir, Mathf.Abs(Vector3.Dot(dir.normalized, Vector3.up)) > 0.999f ? Vector3.forward : Vector3.up);
 		}
 
+		// ---------- capture_sequence: frames over time ----------
+
+		private class SequenceState {
+			public volatile bool Done;
+			public volatile bool Started;
+			public string Error;
+			public byte[] Png;
+			public float[] Times;
+			public int Captured;
+		}
+
+		/// <summary>
+		/// Frames over time in one grid, so motion can be seen: a sit-down, a fade, a face while she speaks. Frame 0 is
+		/// taken before the optional action or animation fires. From the tool's own camera (the user's viewpoint by
+		/// default, copied once) or from the screen itself, which is what shows screen overlays such as fades.
+		/// </summary>
+		public JSONNode CaptureSequence(JSONNode args) {
+			int frames = Mathf.Clamp((int)Num(args, "frames", 8), 2, MaxSnapshotViews);
+			float interval = Mathf.Clamp(Num(args, "interval", 0.5f), 0.05f, 5f);
+			int w = Mathf.Clamp((int)Num(args, "width", 480), 64, 1920);
+			int h = Mathf.Clamp((int)Num(args, "height", 270), 64, 1080);
+			string source = S(args, "source");
+			if (source == "") source = "camera";
+			if (source != "camera" && source != "screen") throw new ApiError("source must be camera or screen");
+			bool hideUi = Bool(args, "hide_ui", source == "screen");
+			string path = S(args, "path");
+			if (path == "") path = "Saves/PluginData/vam-mcp/sequence.png";
+			JSONNode viewArg = args["view"];
+			JSONNode actionArg = args["action"];
+			string animation = S(args, "animation");
+			if (actionArg != null && animation != "") throw new ApiError("pass action or animation, not both");
+			if (viewArg != null && !Has(viewArg, "position")) throw new ApiError("view needs a position: {position, look_at|rotation, fov?}");
+
+			SnapshotView view = null;
+			if (source == "camera") {
+				view = Mt.Run(() => {
+					if (viewArg != null) {
+						JSONArray one = new JSONArray();
+						one.Add(viewArg);
+						return BuildSnapshotViews(one, null)[0];
+					}
+					Camera monitor = MonitorCamera();
+					return new SnapshotView {
+						Label = "user viewpoint",
+						Position = monitor.transform.position,
+						Rotation = monitor.transform.rotation,
+						Fov = monitor.fieldOfView,
+					};
+				}, 10000);
+			}
+
+			int cols = Mathf.CeilToInt(Mathf.Sqrt(frames));
+			int rows = Mathf.CeilToInt(frames / (float)cols);
+			SequenceState state = new SequenceState { Times = new float[frames] };
+			Mt.Run(delegate {
+				FileManagerSecure.CreateDirectory("Saves/PluginData/vam-mcp");
+				SC.StartCoroutine(RenderSequence(state, view, frames, interval, w, h, cols, rows, hideUi, path));
+				return 0;
+			}, 10000);
+
+			// Frame 0 first, then the action, so the strip starts with "before".
+			DateTime startDeadline = DateTime.UtcNow.AddSeconds(10);
+			while (!state.Started && !state.Done && DateTime.UtcNow < startDeadline) Thread.Sleep(5);
+
+			JSONNode fired = null;
+			string firedError = null;
+			try {
+				if (actionArg != null) fired = Mt.Run(() => CallAction(actionArg), 10000);
+				if (animation != "") {
+					JSONClass play = new JSONClass();
+					play["animation"] = animation;
+					if (Has(args, "person")) play["person"] = S(args, "person");
+					if (Has(args, "storable")) play["storable"] = S(args, "storable");
+					fired = PlayAnimation(play);
+				}
+			} catch (Exception e) {
+				firedError = e.Message;
+			}
+
+			DateTime deadline = DateTime.UtcNow.AddSeconds(frames * interval + 30);
+			while (!state.Done && DateTime.UtcNow < deadline) Thread.Sleep(30);
+			if (!state.Done) throw new ApiError("capture timed out");
+			if (state.Error != null) throw new ApiError("capture failed: " + state.Error);
+
+			JSONClass r = new JSONClass();
+			r["path"] = path;
+			r["source"] = source;
+			JSONClass grid = new JSONClass();
+			grid["columns"] = JSONRaw.Num(cols);
+			grid["rows"] = JSONRaw.Num(rows);
+			grid["cell_width"] = JSONRaw.Num(w);
+			grid["cell_height"] = JSONRaw.Num(h);
+			r["grid"] = grid;
+			JSONArray times = new JSONArray();
+			for (int i = 0; i < state.Captured; i++) times.Add(F(state.Times[i]));
+			r["frame_times"] = times;
+			if (view != null) {
+				JSONClass v = new JSONClass();
+				v["label"] = view.Label;
+				v["position"] = Vec(view.Position);
+				if (view.HasLookAt) v["look_at"] = Vec(view.LookAt);
+				else v["rotation"] = Vec(view.Rotation.eulerAngles);
+				v["fov"] = F(view.Fov);
+				r["view"] = v;
+			}
+			if (fired != null) r[animation != "" ? "animation" : "action"] = fired;
+			if (firedError != null) r["fire_error"] = firedError;
+			r["bytes"] = JSONRaw.Num(state.Png.Length);
+			return r;
+		}
+
+		private IEnumerator RenderSequence(SequenceState state, SnapshotView view, int frames, float interval, int w, int h, int cols, int rows, bool hideUi, string path) {
+			GameObject go = null;
+			Camera cam = null;
+			RenderTexture rt = null;
+			RenderTexture scaleRt = null;
+			Texture2D cell = null;
+			Texture2D screen = null;
+			Texture2D sheet = null;
+			RenderTexture oldActive = RenderTexture.active;
+			bool hid = false;
+			try {
+				try {
+					if (view != null) {
+						go = new GameObject("VaMMCP Sequence Camera");
+						cam = go.AddComponent<Camera>();
+						Camera monitor = SC.MonitorCenterCamera;
+						if (monitor != null) cam.CopyFrom(monitor);
+						cam.cullingMask &= ~(1 << 5);
+						rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32);
+						cam.targetTexture = rt;
+						go.transform.position = view.Position;
+						go.transform.rotation = view.Rotation;
+						cam.fieldOfView = view.Fov;
+						cam.enabled = true;
+					} else if (hideUi && SC.MainHUDVisible) {
+						SC.HideMainHUD();
+						hid = true;
+					}
+					cell = new Texture2D(w, h, TextureFormat.RGB24, false);
+					sheet = new Texture2D(cols * w, rows * h, TextureFormat.RGB24, false);
+					sheet.SetPixels32(new Color32[cols * w * rows * h]);
+				} catch (Exception e) {
+					state.Error = e.Message;
+					yield break;
+				}
+				if (hid) yield return null;
+
+				float t0 = 0f;
+				for (int i = 0; i < frames; i++) {
+					while (i > 0 && Time.realtimeSinceStartup - t0 < i * interval) yield return null;
+					yield return new WaitForEndOfFrame();
+					float now = Time.realtimeSinceStartup;
+					if (i == 0) t0 = now;
+					try {
+						if (view != null) {
+							RenderTexture.active = rt;
+							cell.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+						} else {
+							int sw = Screen.width, sh = Screen.height;
+							if (screen == null) screen = new Texture2D(sw, sh, TextureFormat.RGB24, false);
+							RenderTexture.active = null;
+							screen.ReadPixels(new Rect(0, 0, sw, sh), 0, 0);
+							screen.Apply();
+							if (scaleRt == null) scaleRt = RenderTexture.GetTemporary(w, h, 0);
+							Graphics.Blit(screen, scaleRt);
+							RenderTexture.active = scaleRt;
+							cell.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+						}
+						state.Times[i] = now - t0;
+						int col = i % cols;
+						int row = i / cols;
+						sheet.SetPixels(col * w, (rows - 1 - row) * h, w, h, cell.GetPixels());
+						state.Captured = i + 1;
+						state.Started = true;
+					} catch (Exception e) {
+						state.Error = e.Message;
+						yield break;
+					}
+				}
+				try {
+					sheet.Apply();
+					byte[] png = sheet.EncodeToPNG();
+					FileManagerSecure.WriteAllBytes(path, png);
+					state.Png = png;
+				} catch (Exception e) {
+					state.Error = e.Message;
+				}
+			} finally {
+				RenderTexture.active = oldActive;
+				if (hid) SC.ShowMainHUDAuto();
+				if (go != null) UnityEngine.Object.Destroy(go);
+				if (rt != null) {
+					rt.Release();
+					UnityEngine.Object.Destroy(rt);
+				}
+				if (scaleRt != null) RenderTexture.ReleaseTemporary(scaleRt);
+				if (cell != null) UnityEngine.Object.Destroy(cell);
+				if (screen != null) UnityEngine.Object.Destroy(screen);
+				if (sheet != null) UnityEngine.Object.Destroy(sheet);
+				state.Started = true;
+				state.Done = true;
+			}
+		}
+
 		private IEnumerator RenderSnapshots(CaptureState state, List<SnapshotView> views, int w, int h, int cols, int rows, string path) {
 			GameObject go = null;
 			RenderTexture rt = null;

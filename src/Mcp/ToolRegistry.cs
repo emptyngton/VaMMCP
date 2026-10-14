@@ -292,6 +292,21 @@ namespace VaMMCP.Mcp {
 				.P("return_image", "boolean", "Also return the PNG inline (default false)", false)
 				.Timeout(45000).Poller()
 				.Fn(api.Snapshot));
+			tools.Add(new Tool("capture_sequence", "Frames over time in one grid image (left to right, top to bottom), to see motion: a sit-down, a fade, a face while she speaks. source=camera (default) uses the tool's own camera from the user's current viewpoint (copied once; the user's view never moves) or from view; source=screen grabs the screen itself, which is what shows screen overlays such as fades. Frame 0 is taken before the optional action or animation fires; animation is played the safe way (collisions off until the body is in place, as play_animation). The result lists each frame's time.")
+				.P("frames", "number", "Number of frames (default 8, 2-16)", false)
+				.P("interval", "number", "Seconds between frames (default 0.5)", false)
+				.P("source", "string", "camera (default) or screen", false)
+				.P("view", "object", "For source=camera: {position, look_at ([x,y,z] or \"Atom[/control]\") or rotation, fov?}; default: the user's current viewpoint", false)
+				.P("action", "object", "Fire after frame 0: {uid, storable, action}, as call_action", false)
+				.P("animation", "string", "Fire after frame 0: play this Timeline animation safely, as play_animation", false)
+				.P("person", "string", "Person for animation (default: the first one)", false)
+				.P("storable", "string", "Timeline storable for animation (default: the person's only one)", false)
+				.P("width", "number", "Width of each frame (default 480)", false)
+				.P("height", "number", "Height of each frame (default 270)", false)
+				.P("hide_ui", "boolean", "For source=screen: hide VaM's main UI while capturing (default true)", false)
+				.P("path", "string", "Output PNG (default Saves/PluginData/vam-mcp/sequence.png)", false)
+				.Timeout(120000).Poller()
+				.Fn(api.CaptureSequence));
 
 			// ---------- ui ----------
 			tools.Add(new Tool("set_ui", "Show or hide VaM's main UI and/or deselect the selected atom so its panel closes. With no arguments it only reports whether the UI is visible.")
