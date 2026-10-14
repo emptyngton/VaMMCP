@@ -1,4 +1,4 @@
-# Tool reference (70 tools)
+# Tool reference (71 tools)
 
 *[中文版](TOOLS.zh-CN.md)*
 
@@ -137,6 +137,7 @@ What VaM and its plugins logged, each line stamped with date and time (VaM's own
 | `get_camera` | — | Monitor camera position / rotation / FOV |
 | `set_camera` | `position?`, `rotation?`, `fov?` | Move the camera |
 | `capture_view` | `width?`, `height?`, `path?`, `return_image?`, `hide_ui?` | Screenshot what the monitor shows, taken at the end of a frame so people are drawn with their skin (default `Saves/PluginData/vam-mcp/preview.png`, 1280 wide, height from the screen's aspect). `hide_ui=true` hides VaM's main UI for the shot and puts it back afterwards. With `return_image=true` the PNG also comes back as an MCP image block, so clients that cannot read the VaM folder can still see it — keep the resolution modest (e.g. 640×360); anything above 4 MB stays on disk only |
+| `snapshot` | `views?`, `orbit?`, `width?`, `height?`, `path?`, `return_image?` | Pictures from a camera of the tool's own, so the user's view never moves: a plain Unity camera, not an atom, never saved into the scene, with VaM's UI layer left out. `views` is a list of `{position, look_at ([x,y,z] or "Atom[/control]") or rotation, fov?, label?}`; `orbit` is `{target, distance? (2), height? (0), angles? ([0,90,180,270]), fov?}` around a target (a person aims at `chestControl`; angle 0 is in front of it). Up to 16 views, one frame each, laid out in one grid image (left to right, top to bottom); the result lists each cell's label, position and target. Renders inside VaM's normal frame, so people have their skin |
 
 ## UI
 

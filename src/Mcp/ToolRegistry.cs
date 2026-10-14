@@ -283,6 +283,15 @@ namespace VaMMCP.Mcp {
 				.P("hide_ui", "boolean", "Hide VaM's main UI for the shot and put it back afterwards (default false)", false)
 				.Timeout(30000).Poller()
 				.Fn(api.CaptureView));
+			tools.Add(new Tool("snapshot", "Pictures from a camera of the tool's own, without touching the user's view: it is a plain Unity camera, not an atom, so it never ends up in the scene. Give explicit views and/or an orbit around a target; all views go into one grid image (left to right, top to bottom) at path. A target is \"Atom\" or \"Atom/control\" (a person aims at chestControl by default); orbit angle 0 is in front of the target, along its facing direction. VaM's UI layer is left out.")
+				.P("views", "array", "List of {position:[x,y,z], look_at:[x,y,z] or \"Atom[/control]\", rotation:[x,y,z] (instead of look_at), fov? (default 45), label?}", false)
+				.P("orbit", "object", "{target:\"Atom[/control]\", distance? (default 2), height? (metres above the target point, default 0), angles? (degrees, default [0,90,180,270]), fov?}", false)
+				.P("width", "number", "Width of each view (default 640, max 2048)", false)
+				.P("height", "number", "Height of each view (default 360, max 2048)", false)
+				.P("path", "string", "Output PNG (default Saves/PluginData/vam-mcp/snapshot.png)", false)
+				.P("return_image", "boolean", "Also return the PNG inline (default false)", false)
+				.Timeout(45000).Poller()
+				.Fn(api.Snapshot));
 
 			// ---------- ui ----------
 			tools.Add(new Tool("set_ui", "Show or hide VaM's main UI and/or deselect the selected atom so its panel closes. With no arguments it only reports whether the UI is visible.")

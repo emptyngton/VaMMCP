@@ -2610,6 +2610,243 @@ namespace VaMMCP.Api {
 			public int Height;
 		}
 
+		// ---------- snapshot: a camera of the tool's own ----------
+
+		private class SnapshotView {
+			public string Label;
+			public Vector3 Position;
+			public Quaternion Rotation;
+			public float Fov;
+			public bool HasLookAt;
+			public Vector3 LookAt;
+		}
+
+		private const int MaxSnapshotViews = 16;
+
+		/// <summary>
+		/// Pictures from a camera of the tool's own, placed anywhere, without moving the user's view. It is a plain
+		/// Unity camera, not an atom, so it never ends up in the scene. It renders into a texture as part of VaM's
+		/// normal frame, one view per frame, because a camera rendered on demand misses the skin VaM draws later in the
+		/// frame. The views are laid out in one grid image, left to right, top to bottom.
+		/// </summary>
+		public JSONNode Snapshot(JSONNode args) {
+			int w = Mathf.Clamp((int)Num(args, "width", 640), 64, 2048);
+			int h = Mathf.Clamp((int)Num(args, "height", 360), 64, 2048);
+			string path = S(args, "path");
+			if (path == "") path = "Saves/PluginData/vam-mcp/snapshot.png";
+			bool returnImage = Bool(args, "return_image", false);
+			JSONNode viewsArg = args["views"];
+			JSONNode orbitArg = args["orbit"];
+			List<SnapshotView> views = Mt.Run(() => BuildSnapshotViews(viewsArg, orbitArg), 10000);
+			if (views.Count == 0) throw new ApiError("pass views (a list of {position, look_at|rotation, fov?, label?}) or orbit ({target, distance?, height?, angles?})");
+			if (views.Count > MaxSnapshotViews) throw new ApiError("at most " + MaxSnapshotViews + " views per call");
+
+			int cols = Mathf.CeilToInt(Mathf.Sqrt(views.Count));
+			int rows = Mathf.CeilToInt(views.Count / (float)cols);
+			CaptureState state = new CaptureState();
+			Mt.Run(delegate {
+				FileManagerSecure.CreateDirectory("Saves/PluginData/vam-mcp");
+				SC.StartCoroutine(RenderSnapshots(state, views, w, h, cols, rows, path));
+				return 0;
+			}, 10000);
+
+			DateTime deadline = DateTime.UtcNow.AddSeconds(30);
+			while (!state.Done && DateTime.UtcNow < deadline) Thread.Sleep(30);
+			if (!state.Done) throw new ApiError("snapshot timed out");
+			if (state.Error != null) throw new ApiError("snapshot failed: " + state.Error);
+
+			JSONClass r = new JSONClass();
+			r["path"] = path;
+			JSONClass grid = new JSONClass();
+			grid["columns"] = JSONRaw.Num(cols);
+			grid["rows"] = JSONRaw.Num(rows);
+			grid["cell_width"] = JSONRaw.Num(w);
+			grid["cell_height"] = JSONRaw.Num(h);
+			r["grid"] = grid;
+			JSONArray list = new JSONArray();
+			for (int i = 0; i < views.Count; i++) {
+				SnapshotView v = views[i];
+				JSONClass j = new JSONClass();
+				j["cell"] = JSONRaw.Num(i);
+				j["label"] = v.Label;
+				j["position"] = Vec(v.Position);
+				if (v.HasLookAt) j["look_at"] = Vec(v.LookAt);
+				else j["rotation"] = Vec(v.Rotation.eulerAngles);
+				j["fov"] = F(v.Fov);
+				list.Add(j);
+			}
+			r["views"] = list;
+			r["bytes"] = JSONRaw.Num(state.Png.Length);
+			if (returnImage && state.Png.Length <= MaxInlineImageBytes) {
+				r["image_base64"] = Convert.ToBase64String(state.Png);
+				r["image_mime"] = "image/png";
+			} else if (returnImage) {
+				r["note"] = "image too large to inline (" + state.Png.Length + " bytes); read it from path instead";
+			}
+			return r;
+		}
+
+		private static List<SnapshotView> BuildSnapshotViews(JSONNode viewsArg, JSONNode orbitArg) {
+			List<SnapshotView> views = new List<SnapshotView>();
+			JSONArray list = viewsArg != null ? viewsArg.AsArray : null;
+			if (list != null) {
+				for (int i = 0; i < list.Count; i++) {
+					JSONNode n = list[i];
+					if (!Has(n, "position")) throw new ApiError("view " + i + ": position required");
+					SnapshotView v = new SnapshotView {
+						Label = S(n, "label") != "" ? S(n, "label") : "view " + i,
+						Position = ParseVec3(n["position"]),
+						Fov = Num(n, "fov", 45f),
+					};
+					if (Has(n, "look_at")) {
+						v.LookAt = n["look_at"].AsArray != null ? ParseVec3(n["look_at"]) : ResolveSnapshotTarget(n["look_at"].Value).Point;
+						v.HasLookAt = true;
+						v.Rotation = LookRotation(v.Position, v.LookAt);
+					} else if (Has(n, "rotation")) {
+						v.Rotation = Quaternion.Euler(ParseVec3(n["rotation"]));
+					} else {
+						throw new ApiError("view " + i + ": look_at or rotation required");
+					}
+					views.Add(v);
+				}
+			}
+			if (orbitArg != null && Has(orbitArg, "target")) {
+				SnapshotTarget target = ResolveSnapshotTarget(S(orbitArg, "target"));
+				float distance = Num(orbitArg, "distance", 2f);
+				float height = Num(orbitArg, "height", 0f);
+				float fov = Num(orbitArg, "fov", 45f);
+				List<float> angles = new List<float>();
+				JSONArray a = orbitArg["angles"] != null ? orbitArg["angles"].AsArray : null;
+				if (a != null) foreach (JSONNode x in a) angles.Add(x.AsFloat);
+				else angles.AddRange(new[] { 0f, 90f, 180f, 270f });
+				foreach (float angle in angles) {
+					Vector3 dir = Quaternion.Euler(0f, angle, 0f) * target.Forward;
+					Vector3 pos = target.Point + dir * distance + Vector3.up * height;
+					views.Add(new SnapshotView {
+						Label = "orbit " + angle.ToString("0", CultureInfo.InvariantCulture) + "°",
+						Position = pos,
+						Rotation = LookRotation(pos, target.Point),
+						Fov = fov,
+						HasLookAt = true,
+						LookAt = target.Point,
+					});
+				}
+			}
+			return views;
+		}
+
+		private struct SnapshotTarget {
+			public Vector3 Point;
+			public Vector3 Forward;
+		}
+
+		/// <summary>
+		/// "Atom" or "Atom/control". A person without a control named aims at the chest; angle 0 of an orbit is in front
+		/// of the target, along its facing direction flattened to the floor.
+		/// </summary>
+		private static SnapshotTarget ResolveSnapshotTarget(string target) {
+			if (string.IsNullOrEmpty(target)) throw new ApiError("target required");
+			string atomUid = target;
+			string controlId = null;
+			Atom a = SC.GetAtomByUid(target);
+			if (a == null) {
+				int slash = target.LastIndexOf('/');
+				if (slash > 0) {
+					atomUid = target.Substring(0, slash);
+					controlId = target.Substring(slash + 1);
+					a = SC.GetAtomByUid(atomUid);
+				}
+			}
+			if (a == null) throw new ApiError("target atom not found: " + target);
+			Transform t = null;
+			if (controlId == null && a.type == "Person") controlId = "chestControl";
+			if (controlId != null) {
+				FreeControllerV3 fc = a.GetStorableByID(controlId) as FreeControllerV3;
+				if (fc == null) throw new ApiError("control not found: " + controlId + " on " + atomUid);
+				t = fc.followWhenOff != null ? fc.followWhenOff : fc.control;
+			}
+			if (t == null) t = a.mainController != null ? a.mainController.transform : a.transform;
+			Transform facing = a.type == "Person" && a.GetStorableByID("hipControl") is FreeControllerV3
+				? ((FreeControllerV3)a.GetStorableByID("hipControl")).followWhenOff ?? t
+				: t;
+			Vector3 forward = Vector3.ProjectOnPlane(facing.forward, Vector3.up);
+			if (forward.sqrMagnitude < 1e-4f) forward = Vector3.forward;
+			return new SnapshotTarget { Point = t.position, Forward = forward.normalized };
+		}
+
+		private static Quaternion LookRotation(Vector3 from, Vector3 to) {
+			Vector3 dir = to - from;
+			if (dir.sqrMagnitude < 1e-6f) return Quaternion.identity;
+			return Quaternion.LookRotation(dir, Mathf.Abs(Vector3.Dot(dir.normalized, Vector3.up)) > 0.999f ? Vector3.forward : Vector3.up);
+		}
+
+		private IEnumerator RenderSnapshots(CaptureState state, List<SnapshotView> views, int w, int h, int cols, int rows, string path) {
+			GameObject go = null;
+			RenderTexture rt = null;
+			Texture2D cell = null;
+			Texture2D sheet = null;
+			RenderTexture oldActive = RenderTexture.active;
+			try {
+				Camera cam = null;
+				try {
+					go = new GameObject("VaMMCP Snapshot Camera");
+					cam = go.AddComponent<Camera>();
+					Camera monitor = SC.MonitorCenterCamera;
+					if (monitor != null) cam.CopyFrom(monitor);
+					cam.cullingMask &= ~(1 << 5);
+					rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32);
+					cam.targetTexture = rt;
+					cam.enabled = false;
+					cell = new Texture2D(w, h, TextureFormat.RGB24, false);
+					sheet = new Texture2D(cols * w, rows * h, TextureFormat.RGB24, false);
+					Color32[] black = new Color32[cols * w * rows * h];
+					sheet.SetPixels32(black);
+				} catch (Exception e) {
+					state.Error = e.Message;
+					yield break;
+				}
+				for (int i = 0; i < views.Count; i++) {
+					SnapshotView v = views[i];
+					go.transform.position = v.Position;
+					go.transform.rotation = v.Rotation;
+					cam.fieldOfView = v.Fov;
+					cam.enabled = true;
+					yield return new WaitForEndOfFrame();
+					try {
+						RenderTexture.active = rt;
+						cell.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+						cam.enabled = false;
+						int col = i % cols;
+						int row = i / cols;
+						sheet.SetPixels(col * w, (rows - 1 - row) * h, w, h, cell.GetPixels());
+					} catch (Exception e) {
+						state.Error = e.Message;
+						yield break;
+					}
+				}
+				try {
+					sheet.Apply();
+					byte[] png = sheet.EncodeToPNG();
+					FileManagerSecure.WriteAllBytes(path, png);
+					state.Png = png;
+					state.Width = cols * w;
+					state.Height = rows * h;
+				} catch (Exception e) {
+					state.Error = e.Message;
+				}
+			} finally {
+				RenderTexture.active = oldActive;
+				if (go != null) UnityEngine.Object.Destroy(go);
+				if (rt != null) {
+					rt.Release();
+					UnityEngine.Object.Destroy(rt);
+				}
+				if (cell != null) UnityEngine.Object.Destroy(cell);
+				if (sheet != null) UnityEngine.Object.Destroy(sheet);
+				state.Done = true;
+			}
+		}
+
 		private IEnumerator CaptureAtEndOfFrame(CaptureState state, int reqW, int reqH, bool hideUi, string path) {
 			bool hid = hideUi && SC.MainHUDVisible;
 			if (hid) {

@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- `snapshot`: pictures from the tool's own camera, at any position, angle and FOV or as an orbit around a
+  target, laid out in one grid image, without moving the user's view.
 - `find_broken_triggers`: trigger actions whose receiver atom, storable or target no longer exists, checked
   against the live scene.
 - `scene_dependencies`: the packages a scene needs, read from the scene, its subscenes and its package's
